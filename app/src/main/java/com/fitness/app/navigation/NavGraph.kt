@@ -5,6 +5,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.compose.material3.Text
+import com.fitness.app.ui.screens.login.LoginScreen
+import com.fitness.app.ui.screens.signup.SignupScreen
+
+import com.fitness.app.ui.screens.main.MainScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -13,28 +17,31 @@ fun NavGraph(navController: NavHostController) {
         startDestination = Screen.Login.route
     ) {
         composable(Screen.Login.route) {
-            // Placeholder for LoginScreen
-            Text("Login Screen")
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("main") {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onNavigateToSignup = {
+                    navController.navigate(Screen.Signup.route)
+                }
+            )
         }
-        composable(Screen.Feed.route) {
-            // Placeholder for FeedScreen
-            Text("Feed Screen")
+        composable(Screen.Signup.route) {
+            SignupScreen(
+                onSignupSuccess = {
+                    navController.navigate("main") {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onBackToLogin = {
+                    navController.popBackStack()
+                }
+            )
         }
-        composable(Screen.Profile.route) {
-            // Placeholder for ProfileScreen
-            Text("Profile Screen")
-        }
-        composable(Screen.Post.route) {
-            // Placeholder for PostScreen
-            Text("Post Screen")
-        }
-        composable(Screen.Preferences.route) {
-            // Placeholder for PreferencesScreen
-            Text("Preferences Screen")
-        }
-        composable(Screen.AITips.route) {
-            // Placeholder for AITipsScreen
-            Text("AI Tips Screen")
+        composable("main") {
+            MainScreen()
         }
     }
 }
