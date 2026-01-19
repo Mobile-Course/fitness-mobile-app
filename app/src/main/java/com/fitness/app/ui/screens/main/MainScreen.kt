@@ -24,6 +24,8 @@ import androidx.navigation.compose.rememberNavController
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.feed.FeedScreen
 import com.fitness.app.ui.screens.profile.ProfileScreen
+import com.fitness.app.ui.screens.post.PostScreen
+import com.fitness.app.ui.screens.aitips.AITipsScreen
 
 sealed class BottomNavItem(
     val route: String,
@@ -119,10 +121,16 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                 FeedScreen()
             }
             composable(Screen.Post.route) {
-                Text("Post Screen Placeholder")
+                PostScreen(
+                    onPostCreated = {
+                        navController.navigate(Screen.Feed.route) {
+                            popUpTo(Screen.Feed.route) { inclusive = true }
+                        }
+                    }
+                )
             }
             composable(Screen.AITips.route) {
-                Text("AI Tips Screen Placeholder")
+                AITipsScreen()
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(onNavigateToSettings = onNavigateToSettings)
