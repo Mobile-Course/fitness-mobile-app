@@ -52,13 +52,5 @@ app/src/main/java/com/fitness/app/
 3.  Wait for Gradle sync to complete.
 4.  Run the `app` module on an emulator (API 24+) or a physical device.
 
-## 🤝 Contributing
-
-This project is structured for easy extension.
--   To implement post logic, check `PostViewModel.kt`.
--   To add AI capabilities, check `AITipsViewModel.kt`.
-
----
-
 *Made with ❤️ for Fitness Enthusiasts.*
 *By Guy Yablonka and Ethan Larrar*
