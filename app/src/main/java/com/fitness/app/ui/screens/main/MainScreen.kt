@@ -23,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.feed.FeedScreen
+import com.fitness.app.ui.screens.profile.ProfileScreen
 
 sealed class BottomNavItem(
     val route: String,
@@ -57,7 +58,7 @@ sealed class BottomNavItem(
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(onNavigateToSettings: () -> Unit) {
     val navController = rememberNavController()
     val items = listOf(
         BottomNavItem.Feed,
@@ -124,7 +125,7 @@ fun MainScreen() {
                 Text("AI Tips Screen Placeholder")
             }
             composable(Screen.Profile.route) {
-                Text("Profile Screen Placeholder")
+                ProfileScreen(onNavigateToSettings = onNavigateToSettings)
             }
         }
     }
