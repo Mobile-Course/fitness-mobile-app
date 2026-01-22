@@ -43,6 +43,6 @@ class AITipsViewModel : BaseViewModel<AITipsUiState>(AITipsUiState()) {
         // GlobalScope.launch { ... } or viewModelScope.launch { ... }
         
         // 3. For now, we stub a success case
-        // updateState { it.copy(isGenerating = false, aiResponse = "Here is your personalized fitness tip...") }
+        updateState { it.copy(isGenerating = false, aiResponse = "Here is your personalized fitness tip...") }
     }
 }

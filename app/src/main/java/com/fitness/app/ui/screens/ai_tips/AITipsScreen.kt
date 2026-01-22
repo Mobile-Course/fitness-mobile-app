@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+
+import com.fitness.app.ui.components.TipCard
 
 /**
  * Composable for the AI Tips Page.
@@ -138,6 +143,40 @@ fun AITipsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Today's Tips Section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    text = "Today's Tips",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = accentDark
+                    )
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TipCard(
+                icon = Icons.Default.FitnessCenter, // Placeholder icon
+                title = "Progressive Overload",
+                tag = "workout",
+                description = "Increase your weights by 2.5-5% each week to continuously challenge your muscles and promote growth.",
+                accentColor = accentDark
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TipCard(
+                icon = Icons.Default.Restaurant, // Placeholder icon, need to ensure import
+                title = "Post-Workout Nutrition",
+                tag = "nutrition",
+                description = "Consume protein within 30-60 minutes after training to optimize muscle recovery and growth.",
+                accentColor = accentDark
+            )
+
             // Hint: Display the AI response here
             if (uiState.isGenerating) {
                 CircularProgressIndicator(color = accentDark)
@@ -158,3 +197,4 @@ fun AITipsScreen(
         }
     }
 }
+
