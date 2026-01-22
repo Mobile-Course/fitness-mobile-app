@@ -6,7 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,15 +51,6 @@ fun PostScreen(
                         )
                     )
                 },
-                navigationIcon = {
-                    IconButton(onClick = { /* TODO: Handle back navigation if needed */ }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = accentDark
-                        )
-                    }
-                },
                 actions = {
                     Button(
                         onClick = { viewModel.submitPost(onSuccess = onPostCreated) },
@@ -68,9 +59,11 @@ fun PostScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
-                        // Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                        // Spacer(modifier = Modifier.width(8.dp))
-                        Text("Share")
+                        Icon(
+                            imageVector = Icons.Filled.Send,
+                            contentDescription = "Share",
+                            tint = Color.White
+                        )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                 },
@@ -134,7 +127,8 @@ fun PostScreen(
                         )
                     )
                 },
-                selectedImageUri = uiState.selectedImageUri
+                selectedImageUri = uiState.selectedImageUri,
+                onRemoveClick = { viewModel.onImageSelected(null) }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
