@@ -46,6 +46,10 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
         updateState { it.copy(calories = newCalories, error = null) }
     }
 
+    fun clearError() {
+        updateState { it.copy(error = null) }
+    }
+
     /**
      * Logic for submitting the post.
      */

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitness.app.ui.components.CMSDropdown
 import com.fitness.app.ui.components.CMSInputField
+import com.fitness.app.ui.components.DismissibleErrorBanner
 import com.fitness.app.ui.components.PhotoSelector
 
 /**
@@ -85,6 +86,15 @@ fun PostScreen(
         ) {
             Divider(color = Color(0xFFE2E8F0))
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Error Banner
+            uiState.error?.let {
+                DismissibleErrorBanner(
+                    error = it,
+                    onDismiss = { viewModel.clearError() }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Title
             CMSInputField(
@@ -170,11 +180,6 @@ fun PostScreen(
             }
             
             Spacer(modifier = Modifier.height(40.dp))
-            
-            // Error Message
-            uiState.error?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error)
-            }
             
             Spacer(modifier = Modifier.height(24.dp))
         }
