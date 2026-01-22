@@ -17,6 +17,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import com.fitness.app.ui.components.CMSDropdown
 import com.fitness.app.ui.components.CMSInputField
 import com.fitness.app.ui.components.DismissibleErrorBanner
@@ -118,7 +121,21 @@ fun PostScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Add Photo
-            PhotoSelector(onClick = { /* TODO: Implement photo picker */ })
+            val singlePhotoPickerLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickVisualMedia(),
+                onResult = { uri -> viewModel.onImageSelected(uri) }
+            )
+
+            PhotoSelector(
+                onClick = {
+                    singlePhotoPickerLauncher.launch(
+                        PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                },
+                selectedImageUri = uiState.selectedImageUri
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

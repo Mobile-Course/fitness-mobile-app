@@ -13,7 +13,8 @@ data class PostUiState(
     val duration: String = "",
     val calories: String = "",
     val isPosting: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val selectedImageUri: android.net.Uri? = null
 )
 
 /**
@@ -44,6 +45,10 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
 
     fun onCaloriesChanged(newCalories: String) {
         updateState { it.copy(calories = newCalories, error = null) }
+    }
+    
+    fun onImageSelected(uri: android.net.Uri?) {
+        updateState { it.copy(selectedImageUri = uri) }
     }
 
     fun clearError() {
