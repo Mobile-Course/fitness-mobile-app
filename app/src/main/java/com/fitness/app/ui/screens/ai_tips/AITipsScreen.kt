@@ -1,6 +1,8 @@
 package com.fitness.app.ui.screens.ai_tips
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -20,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.fitness.app.ui.components.QuickQuestionButton
 import com.fitness.app.ui.components.TipCard
+import com.fitness.app.ui.theme.InputTextBlack
 
 /**
  * Composable for the AI Tips Page.
@@ -33,11 +37,19 @@ fun AITipsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
+    val focusManager = LocalFocusManager.current
+    val interactionSource = remember { MutableInteractionSource() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(bgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            }
     ) {
         // TOP APP BAR
         TopAppBar(
@@ -115,8 +127,8 @@ fun AITipsScreen(
                                 focusedBorderColor = accentDark,
                                 unfocusedBorderColor = Color(0xFFE2E8F0),
                                 cursorColor = accentDark,
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black
+                                focusedTextColor = InputTextBlack,
+                                unfocusedTextColor = InputTextBlack
                             )
                         )
 
