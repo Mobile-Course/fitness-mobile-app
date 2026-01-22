@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import com.fitness.app.ui.theme.InputTextBlack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -138,7 +139,9 @@ fun SignupScreen(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
                                 focusedBorderColor = inputBorder,
-                                unfocusedBorderColor = inputBorder
+                                unfocusedBorderColor = inputBorder,
+                                focusedTextColor = InputTextBlack,
+                                unfocusedTextColor = InputTextBlack
                             ),
                             shape = RoundedCornerShape(4.dp)
                         )
@@ -169,7 +172,9 @@ fun SignupScreen(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
                                 focusedBorderColor = inputBorder,
-                                unfocusedBorderColor = inputBorder
+                                unfocusedBorderColor = inputBorder,
+                                focusedTextColor = InputTextBlack,
+                                unfocusedTextColor = InputTextBlack
                             ),
                             shape = RoundedCornerShape(4.dp)
                         )
@@ -210,7 +215,9 @@ fun SignupScreen(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
                                 focusedBorderColor = inputBorder,
-                                unfocusedBorderColor = inputBorder
+                                unfocusedBorderColor = inputBorder,
+                                focusedTextColor = InputTextBlack,
+                                unfocusedTextColor = InputTextBlack
                             ),
                             shape = RoundedCornerShape(4.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)

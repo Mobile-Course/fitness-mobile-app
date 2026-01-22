@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import com.fitness.app.ui.components.QuickQuestionButton
 import com.fitness.app.ui.components.TipCard
+import com.fitness.app.ui.theme.InputTextBlack
 
 /**
  * Composable for the AI Tips Page.
@@ -115,8 +116,8 @@ fun AITipsScreen(
                                 focusedBorderColor = accentDark,
                                 unfocusedBorderColor = Color(0xFFE2E8F0),
                                 cursorColor = accentDark,
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black
+                                focusedTextColor = InputTextBlack,
+                                unfocusedTextColor = InputTextBlack
                             )
                         )
 
