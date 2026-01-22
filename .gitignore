@@ -33,6 +33,6 @@ google-services.json
 # Android Profiling
 *.hprof
 
-# .agent/*
+.agent/*
 
 # *.gradle
