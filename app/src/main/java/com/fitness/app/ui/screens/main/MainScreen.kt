@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fitness.app.navigation.Screen
+import com.fitness.app.ui.screens.ai_tips.AITipsScreen
 import com.fitness.app.ui.screens.feed.FeedScreen
 import com.fitness.app.ui.screens.profile.ProfileScreen
 import com.fitness.app.ui.screens.post.PostScreen
@@ -129,7 +130,7 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                 )
             }
             composable(Screen.AITips.route) {
-                Text("AI Tips Screen Placeholder")
+                AITipsScreen()
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(onNavigateToSettings = onNavigateToSettings)

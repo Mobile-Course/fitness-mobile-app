@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.compose.material3.Text
 import com.fitness.app.ui.screens.login.LoginScreen
 import com.fitness.app.ui.screens.signup.SignupScreen
 import com.fitness.app.ui.screens.main.MainScreen
