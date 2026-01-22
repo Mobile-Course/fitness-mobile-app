@@ -13,10 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import com.fitness.app.ui.components.QuickQuestionButton
 import com.fitness.app.ui.components.TipCard
 
 /**
@@ -120,11 +122,16 @@ fun AITipsScreen(
 
                         Button(
                             onClick = { viewModel.getAITip() },
+                            enabled = uiState.query.isNotBlank() && !uiState.isGenerating && uiState.aiResponse == null,
                             contentPadding = PaddingValues(0.dp),
                             modifier = Modifier
                                 .size(56.dp), // Adjust size to match text field height roughly
                             shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9EA6B5)) // Greyish generic placeholder color or accentDark
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = accentDark,
+                                disabledContainerColor = Color(0xFFE2E8F0),
+                                disabledContentColor = Color.Gray
+                            )
                         ) {
                             Text(text = "➤", fontSize = 20.sp, color = Color.White)
                         }
@@ -136,6 +143,22 @@ fun AITipsScreen(
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // AI Response Display (Moved here)
+                    if (uiState.isGenerating) {
+                        CircularProgressIndicator(color = accentDark, modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
+
+                    uiState.aiResponse?.let { response ->
+                         Text(
+                            text = response,
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = accentDark,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }
@@ -177,23 +200,47 @@ fun AITipsScreen(
                 accentColor = accentDark
             )
 
-            // Hint: Display the AI response here
-            if (uiState.isGenerating) {
-                CircularProgressIndicator(color = accentDark)
-            }
+            Spacer(modifier = Modifier.height(24.dp))
 
-            uiState.aiResponse?.let { response ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Text(
-                        text = response,
-                        modifier = Modifier.padding(16.dp),
+            // Quick Questions Section
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                Text(
+                    text = "Quick Questions",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
                         color = accentDark
                     )
-                }
+                )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val quickQuestions = listOf(
+                "Best exercises for abs?",
+                "How much protein do I need?",
+                "Tips for better sleep",
+                "How to stay motivated?"
+            )
+
+            quickQuestions.forEach { question ->
+                QuickQuestionButton(
+                    text = question,
+                    onClick = {
+                        viewModel.onQueryChanged(question)
+                        viewModel.getAITip()
+                    },
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Hint: Display the AI response here
+            // Hint: Display the AI response here - MOVED ABOVE
         }
     }
 }

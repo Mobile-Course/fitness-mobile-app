@@ -23,7 +23,7 @@ class AITipsViewModel : BaseViewModel<AITipsUiState>(AITipsUiState()) {
      * Update the user's question or query for the AI.
      */
     fun onQueryChanged(newQuery: String) {
-        updateState { it.copy(query = newQuery, error = null) }
+        updateState { it.copy(query = newQuery, error = null, aiResponse = null) }
     }
 
     /**
