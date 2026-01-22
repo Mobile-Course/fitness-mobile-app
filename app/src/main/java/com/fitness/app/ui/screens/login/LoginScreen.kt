@@ -142,7 +142,9 @@ fun LoginScreen(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
                                 focusedBorderColor = inputBorder,
-                                unfocusedBorderColor = inputBorder
+                                unfocusedBorderColor = inputBorder,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
                             ),
                             shape = RoundedCornerShape(4.dp)
                         )
@@ -183,7 +185,9 @@ fun LoginScreen(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
                                 focusedBorderColor = inputBorder,
-                                unfocusedBorderColor = inputBorder
+                                unfocusedBorderColor = inputBorder,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
                             ),
                             shape = RoundedCornerShape(4.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
