@@ -24,7 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.ai_tips.AITipsScreen
 import com.fitness.app.ui.screens.feed.FeedScreen
-import com.fitness.app.ui.screens.profile.ProfileScreen
+// import com.fitness.app.ui.screens.profile.ProfileScreen
 
 sealed class BottomNavItem(
     val route: String,
@@ -126,7 +126,7 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                 AITipsScreen()
             }
             composable(Screen.Profile.route) {
-                ProfileScreen(onNavigateToSettings = onNavigateToSettings)
+                // ProfileScreen(onNavigateToSettings = onNavigateToSettings)
             }
         }
     }

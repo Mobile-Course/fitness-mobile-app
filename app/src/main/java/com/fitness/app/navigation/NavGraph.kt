@@ -7,7 +7,7 @@ import androidx.navigation.compose.composable
 import com.fitness.app.ui.screens.login.LoginScreen
 import com.fitness.app.ui.screens.signup.SignupScreen
 import com.fitness.app.ui.screens.main.MainScreen
-import com.fitness.app.ui.screens.preferences.PreferencesScreen
+// import com.fitness.app.ui.screens.preferences.PreferencesScreen
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -47,16 +47,16 @@ fun NavGraph(navController: NavHostController) {
             )
         }
         composable(Screen.Preferences.route) {
-            PreferencesScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onLogout = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            )
+            // PreferencesScreen(
+            //     onBack = {
+            //         navController.popBackStack()
+            //     },
+            //     onLogout = {
+            //         navController.navigate(Screen.Login.route) {
+            //             popUpTo(0) { inclusive = true }
+            //         }
+            //     }
+            // )
         }
     }
 }
