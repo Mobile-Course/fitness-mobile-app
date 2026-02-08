@@ -25,11 +25,11 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
     private val gson = Gson()
 
     fun onEmailChanged(email: String) {
-        updateState { it.copy(email = email, emailError = null) }
+        updateState { it.copy(email = email, emailError = null, errorMessage = null) }
     }
 
     fun onPasswordChanged(password: String) {
-        updateState { it.copy(password = password, passwordError = null) }
+        updateState { it.copy(password = password, passwordError = null, errorMessage = null) }
     }
 
     fun togglePasswordVisibility() {
@@ -37,7 +37,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
     }
 
     fun onSignInClicked(onSuccess: () -> Unit) {
-        // Simple demo validation
+        // Validation
         var hasError = false
         if (uiState.value.email.isBlank()) {
             updateState { it.copy(emailError = "Email is required") }

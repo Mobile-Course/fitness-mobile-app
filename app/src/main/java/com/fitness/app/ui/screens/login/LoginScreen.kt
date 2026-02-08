@@ -7,9 +7,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,9 +31,9 @@ import com.fitness.app.auth.GoogleAuthCodeStore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    onNavigateToSignup: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+        onLoginSuccess: () -> Unit,
+        onNavigateToSignup: () -> Unit,
+        viewModel: LoginViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -113,10 +113,10 @@ fun LoginScreen(
 
             // Login Card
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = cardBg),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -136,11 +136,12 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Enter your credentials to access your account",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center
-                        )
+                            text = "Enter your credentials to access your account",
+                            style =
+                                    MaterialTheme.typography.bodyMedium.copy(
+                                            color = Color.Gray,
+                                            textAlign = TextAlign.Center
+                                    )
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -166,7 +167,11 @@ fun LoginScreen(
                             shape = RoundedCornerShape(4.dp)
                         )
                         uiState.emailError?.let {
-                            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                            Text(
+                                    text = it,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 12.sp
+                            )
                         }
                     }
 
@@ -204,7 +209,32 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                         )
                         uiState.passwordError?.let {
-                            Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                            Text(
+                                    text = it,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    // General error message from API
+                    uiState.errorMessage?.let { errorMsg ->
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors =
+                                        CardDefaults.cardColors(
+                                                containerColor =
+                                                        MaterialTheme.colorScheme.errorContainer
+                                        ),
+                                shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                    text = errorMsg,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(12.dp)
+                            )
                         }
                     }
 
@@ -220,7 +250,10 @@ fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = accentDark)
                     ) {
                         if (uiState.isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                            )
                         } else {
                             Text(
                                 text = "Sign In",
@@ -271,12 +304,13 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Don't have an account? Sign up",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = accentDark,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        modifier = Modifier.clickable { onNavigateToSignup() }
+                            text = "Don't have an account? Sign up",
+                            style =
+                                    MaterialTheme.typography.bodyMedium.copy(
+                                            color = accentDark,
+                                            fontWeight = FontWeight.Medium
+                                    ),
+                            modifier = Modifier.clickable { onNavigateToSignup() }
                     )
                 }
             }
