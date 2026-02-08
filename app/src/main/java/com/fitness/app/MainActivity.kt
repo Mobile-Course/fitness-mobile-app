@@ -40,10 +40,18 @@ class MainActivity : ComponentActivity() {
         val data: Uri = intent?.data ?: return
         if (data.scheme != "https") return
         if (data.host != "node86.cs.colman.ac.il") return
-        if (!data.path.orEmpty().startsWith("/api/auth/google/redirect")) return
-        val code = data.getQueryParameter("code")
-        if (!code.isNullOrBlank()) {
-            GoogleAuthCodeStore.setCode(code)
+        if (!data.path.orEmpty().startsWith("/app/auth/callback")) return
+        val accessToken = data.getQueryParameter("code")
+        val refreshToken = data.getQueryParameter("refreshToken")
+        val userId = data.getQueryParameter("userId")
+        if (!accessToken.isNullOrBlank()) {
+            GoogleAuthCodeStore.setResult(
+                com.fitness.app.auth.GoogleAuthResult(
+                    accessToken = accessToken,
+                    refreshToken = refreshToken,
+                    userId = userId
+                )
+            )
         }
     }
 }

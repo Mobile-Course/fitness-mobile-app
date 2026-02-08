@@ -90,9 +90,18 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
         }
     }
 
-    fun onGoogleCodeReceived(code: String, onSuccess: () -> Unit) {
-        // TODO: Exchange code with backend for app session.
-        updateState { it.copy(isLoading = true) }
+    fun onGoogleTokensReceived(
+        accessToken: String?,
+        refreshToken: String?,
+        userId: String?,
+        onSuccess: () -> Unit
+    ) {
+        // TODO: Persist tokens securely and fetch user profile if needed.
+        if (accessToken.isNullOrBlank()) {
+            updateState { it.copy(errorMessage = "Google login failed: missing token") }
+            return
+        }
+        updateState { it.copy(isLoading = false, errorMessage = null) }
         onSuccess()
     }
 

@@ -37,7 +37,7 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val googleCode by GoogleAuthCodeStore.code.collectAsState()
+    val googleResult by GoogleAuthCodeStore.result.collectAsState()
 
     // Matching mockup colors
     val bgColor = Color(0xFFF0F4F8)
@@ -47,10 +47,15 @@ fun LoginScreen(
     val inputBg = Color(0xFFF8FAFC)
     val inputBorder = Color(0xFFE2E8F0)
 
-    LaunchedEffect(googleCode) {
-        val code = googleCode
-        if (!code.isNullOrBlank()) {
-            viewModel.onGoogleCodeReceived(code, onLoginSuccess)
+    LaunchedEffect(googleResult) {
+        val result = googleResult
+        if (result != null && !result.accessToken.isNullOrBlank()) {
+            viewModel.onGoogleTokensReceived(
+                accessToken = result.accessToken,
+                refreshToken = result.refreshToken,
+                userId = result.userId,
+                onSuccess = onLoginSuccess
+            )
             GoogleAuthCodeStore.clear()
         }
     }

@@ -4,15 +4,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-object GoogleAuthCodeStore {
-    private val _code = MutableStateFlow<String?>(null)
-    val code: StateFlow<String?> = _code.asStateFlow()
+data class GoogleAuthResult(
+    val accessToken: String?,
+    val refreshToken: String?,
+    val userId: String?
+)
 
-    fun setCode(value: String?) {
-        _code.value = value
+object GoogleAuthCodeStore {
+    private val _result = MutableStateFlow<GoogleAuthResult?>(null)
+    val result: StateFlow<GoogleAuthResult?> = _result.asStateFlow()
+
+    fun setResult(value: GoogleAuthResult?) {
+        _result.value = value
     }
 
     fun clear() {
-        _code.value = null
+        _result.value = null
     }
 }
