@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,6 +24,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.Intent
+import android.net.Uri
+import com.fitness.app.auth.GoogleAuthCodeStore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +36,8 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val googleCode by GoogleAuthCodeStore.code.collectAsState()
 
     // Matching mockup colors
     val bgColor = Color(0xFFF0F4F8)
@@ -40,6 +46,14 @@ fun LoginScreen(
     val labelColor = Color(0xFF343E4E)
     val inputBg = Color(0xFFF8FAFC)
     val inputBorder = Color(0xFFE2E8F0)
+
+    LaunchedEffect(googleCode) {
+        val code = googleCode
+        if (!code.isNullOrBlank()) {
+            viewModel.onGoogleCodeReceived(code, onLoginSuccess)
+            GoogleAuthCodeStore.clear()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -216,6 +230,41 @@ fun LoginScreen(
                                 )
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "or",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Google Sign In Button
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://node86.cs.colman.ac.il/api/auth/google")
+                            )
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = accentDark)
+                    ) {
+                        Text(
+                            text = "Continue with Google",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = accentDark,
+                                fontSize = 16.sp
+                            )
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))

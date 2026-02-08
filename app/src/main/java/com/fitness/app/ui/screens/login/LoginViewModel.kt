@@ -43,4 +43,10 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             onSuccess()
         }
     }
+
+    fun onGoogleCodeReceived(code: String, onSuccess: () -> Unit) {
+        // TODO: Exchange code with backend for app session.
+        updateState { it.copy(isLoading = true) }
+        onSuccess()
+    }
 }
