@@ -71,8 +71,8 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = Color.White,
-                contentColor = Color.Black
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
@@ -84,13 +84,13 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                             Icon(
                                 imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = item.title,
-                                tint = if (isSelected) Color(0xFF343E4E) else Color.Gray
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         },
                         label = {
                             Text(
                                 text = item.title,
-                                color = if (isSelected) Color(0xFF343E4E) else Color.Gray
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
                             )
                         },
                         selected = isSelected,
@@ -104,7 +104,7 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = Color(0xFFF0F4F8)
+                            indicatorColor = Color(0xFFF3F4F6)
                         )
                     )
                 }

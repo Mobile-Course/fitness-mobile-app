@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen() {
-    val bgColor = Color(0xFFF0F4F8)
-    val accentDark = Color(0xFF343E4E)
+    val bgColor = MaterialTheme.colorScheme.background
+    val accentDark = MaterialTheme.colorScheme.onBackground
 
     Column(
         modifier = Modifier
@@ -39,7 +39,7 @@ fun FeedScreen() {
             )
         )
 
-        Divider(color = Color(0xFFE2E8F0))
+        Divider(color = MaterialTheme.colorScheme.outline)
 
         // Content
         Box(

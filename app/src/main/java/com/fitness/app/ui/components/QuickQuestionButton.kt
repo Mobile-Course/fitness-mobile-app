@@ -21,15 +21,13 @@ fun QuickQuestionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val accentDark = Color(0xFF343E4E) // Matching AITipsScreen colors
-
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.wrapContentSize(),
         shape = MaterialTheme.shapes.small,
-        border = BorderStroke(1.dp, Color(0xFF94A3B8)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = accentDark,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             containerColor = Color.Transparent
         ),
         contentPadding = PaddingValues(horizontal = 16.dp)

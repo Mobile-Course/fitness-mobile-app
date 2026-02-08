@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.Intent
 import android.net.Uri
 import com.fitness.app.auth.GoogleAuthCodeStore
+import com.fitness.app.ui.components.GradientButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,12 +41,12 @@ fun LoginScreen(
     val googleResult by GoogleAuthCodeStore.result.collectAsState()
 
     // Matching mockup colors
-    val bgColor = Color(0xFFF0F4F8)
-    val cardBg = Color.White
-    val accentDark = Color(0xFF343E4E)
-    val labelColor = Color(0xFF343E4E)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBg = MaterialTheme.colorScheme.surface
+    val accentDark = MaterialTheme.colorScheme.onBackground
+    val labelColor = MaterialTheme.colorScheme.onBackground
     val inputBg = Color(0xFFF8FAFC)
-    val inputBorder = Color(0xFFE2E8F0)
+    val inputBorder = MaterialTheme.colorScheme.outline
 
     LaunchedEffect(googleResult) {
         val result = googleResult
@@ -241,13 +242,12 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Sign In Button
-                    Button(
+                    GradientButton(
                         onClick = { viewModel.onSignInClicked(onLoginSuccess) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = accentDark)
+                        shape = RoundedCornerShape(4.dp)
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(

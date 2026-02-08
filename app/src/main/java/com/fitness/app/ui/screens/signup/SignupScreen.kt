@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitness.app.ui.components.GradientButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,12 +34,12 @@ fun SignupScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val bgColor = Color(0xFFF0F4F8)
-    val cardBg = Color.White
-    val accentDark = Color(0xFF343E4E)
-    val labelColor = Color(0xFF343E4E)
+    val bgColor = MaterialTheme.colorScheme.background
+    val cardBg = MaterialTheme.colorScheme.surface
+    val accentDark = MaterialTheme.colorScheme.onBackground
+    val labelColor = MaterialTheme.colorScheme.onBackground
     val inputBg = Color(0xFFF8FAFC)
-    val inputBorder = Color(0xFFE2E8F0)
+    val inputBorder = MaterialTheme.colorScheme.outline
 
     Box(
         modifier = Modifier
@@ -236,13 +237,12 @@ fun SignupScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Create Account Button
-                    Button(
+                    GradientButton(
                         onClick = { viewModel.onCreateAccountClicked(onSignupSuccess) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = accentDark)
+                        shape = RoundedCornerShape(4.dp)
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))

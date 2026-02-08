@@ -1,4 +1,4 @@
-package com.fitness.app.ui.screens.ai_tips
+﻿package com.fitness.app.ui.screens.ai_tips
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import com.fitness.app.ui.components.GradientButton
 import com.fitness.app.ui.components.QuickQuestionButton
 import com.fitness.app.ui.components.TipCard
 
@@ -31,8 +32,8 @@ fun AITipsScreen(
     viewModel: AITipsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val bgColor = Color(0xFFF0F4F8)
-    val accentDark = Color(0xFF343E4E)
+    val bgColor = MaterialTheme.colorScheme.background
+    val accentDark = MaterialTheme.colorScheme.onBackground
 
     Column(
         modifier = Modifier
@@ -53,7 +54,7 @@ fun AITipsScreen(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
         )
 
-        Divider(color = Color(0xFFE2E8F0))
+        Divider(color = MaterialTheme.colorScheme.outline)
 
         // MAIN CONTENT
         Column(
@@ -66,7 +67,7 @@ fun AITipsScreen(
             // Ask AI Coach Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -77,7 +78,7 @@ fun AITipsScreen(
                     ) {
                          // You could add an icon here if available, e.g., Icon(Icons.Default.Star, ...)
                         Text(
-                            text = "✨ Ask AI Coach",
+                            text = "ג¨ Ask AI Coach",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = accentDark
@@ -113,27 +114,22 @@ fun AITipsScreen(
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = accentDark,
-                                unfocusedBorderColor = Color(0xFFE2E8F0),
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                 cursorColor = accentDark,
                                 focusedTextColor = Color.Black,
                                 unfocusedTextColor = Color.Black
                             )
                         )
 
-                        Button(
+                        GradientButton(
                             onClick = { viewModel.getAITip() },
                             enabled = uiState.query.isNotBlank() && !uiState.isGenerating && uiState.aiResponse == null,
                             contentPadding = PaddingValues(0.dp),
                             modifier = Modifier
                                 .size(56.dp), // Adjust size to match text field height roughly
-                            shape = MaterialTheme.shapes.small,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = accentDark,
-                                disabledContainerColor = Color(0xFFE2E8F0),
-                                disabledContentColor = Color.Gray
-                            )
+                            shape = MaterialTheme.shapes.small
                         ) {
-                            Text(text = "➤", fontSize = 20.sp, color = Color.White)
+                            Text(text = "ג₪", fontSize = 20.sp, color = Color.White)
                         }
                     }
                     
@@ -244,4 +240,5 @@ fun AITipsScreen(
         }
     }
 }
+
 
