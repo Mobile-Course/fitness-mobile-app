@@ -44,15 +44,18 @@ fun SignupScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(bgColor)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .padding(16.dp),
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()
         ) {
+            Spacer(modifier = Modifier.height(4.dp))
             Surface(
-                modifier = Modifier.size(80.dp),
+                modifier = Modifier.size(56.dp),
                 shape = CircleShape,
                 color = accentDark
             ) {
@@ -60,30 +63,31 @@ fun SignupScreen(
                     imageVector = Icons.Default.FitnessCenter,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.padding(20.dp)
+                    modifier = Modifier.padding(12.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "FitTrack",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Black,
                     color = accentDark,
-                    fontSize = 42.sp
+                    fontSize = 30.sp
                 )
             )
 
             Text(
                 text = "Your personal fitness companion",
-                style = MaterialTheme.typography.bodyLarge.copy(
+                style = MaterialTheme.typography.bodyMedium.copy(
                     color = accentDark,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    fontSize = 14.sp
                 )
             )
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -93,7 +97,7 @@ fun SignupScreen(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(24.dp)
+                        .padding(16.dp)
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -102,11 +106,11 @@ fun SignupScreen(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = accentDark,
-                            fontSize = 28.sp
+                            fontSize = 22.sp
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
                         text = "Sign up to start your fitness journey",
@@ -116,7 +120,7 @@ fun SignupScreen(
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Full Name Field
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -134,9 +138,12 @@ fun SignupScreen(
                             placeholder = { Text("John Doe", color = Color.LightGray) },
                             modifier = Modifier.fillMaxWidth(),
                             isError = uiState.fullNameError != null,
+                            singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
                                 focusedBorderColor = inputBorder,
                                 unfocusedBorderColor = inputBorder
                             ),
@@ -147,7 +154,7 @@ fun SignupScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Email Field
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -165,9 +172,12 @@ fun SignupScreen(
                             placeholder = { Text("you@example.com", color = Color.LightGray) },
                             modifier = Modifier.fillMaxWidth(),
                             isError = uiState.emailError != null,
+                            singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
                                 focusedBorderColor = inputBorder,
                                 unfocusedBorderColor = inputBorder
                             ),
@@ -178,7 +188,7 @@ fun SignupScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Password Field
                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -206,9 +216,12 @@ fun SignupScreen(
                                 }
                             },
                             isError = uiState.passwordError != null,
+                            singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = inputBg,
                                 unfocusedContainerColor = inputBg,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
                                 focusedBorderColor = inputBorder,
                                 unfocusedBorderColor = inputBorder
                             ),
@@ -220,14 +233,14 @@ fun SignupScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(30.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Create Account Button
                     Button(
                         onClick = { viewModel.onCreateAccountClicked(onSignupSuccess) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(44.dp),
                         shape = RoundedCornerShape(4.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = accentDark)
                     ) {
@@ -239,13 +252,13 @@ fun SignupScreen(
                                 style = MaterialTheme.typography.labelLarge.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
-                                    fontSize = 16.sp
+                                    fontSize = 14.sp
                                 )
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.clickable { onBackToLogin() }
