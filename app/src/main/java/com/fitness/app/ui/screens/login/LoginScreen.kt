@@ -156,7 +156,14 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth(),
                             isError = uiState.emailError != null,
                             singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = inputBg,
+                                unfocusedContainerColor = inputBg,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                focusedBorderColor = inputBorder,
+                                unfocusedBorderColor = inputBorder
+                            ),
                             shape = RoundedCornerShape(4.dp)
                         )
                         uiState.emailError?.let {
@@ -190,7 +197,14 @@ fun LoginScreen(
                             },
                             isError = uiState.passwordError != null,
                             singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = inputBg,
+                                unfocusedContainerColor = inputBg,
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black,
+                                focusedBorderColor = inputBorder,
+                                unfocusedBorderColor = inputBorder
+                            ),
                             shape = RoundedCornerShape(4.dp),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                         )
