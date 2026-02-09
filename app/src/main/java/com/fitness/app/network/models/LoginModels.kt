@@ -6,8 +6,8 @@ data class LoginRequest(
 )
 
 data class LoginResponse(
-    val access_token: String? = null,
-    val refresh_token: String? = null,
+    val Authentication: String? = null,
+    val Refresh: String? = null,
     val user: User? = null
 )
 

@@ -3,13 +3,17 @@ package com.fitness.app.ui.screens.login
 import androidx.lifecycle.viewModelScope
 import com.fitness.app.network.ApiClient
 import com.fitness.app.network.models.LoginRequest
-import com.fitness.app.network.models.LoginResponse
+import com.google.gson.JsonObject
+import com.fitness.app.auth.UserSession
+import com.fitness.app.network.NetworkConfig
 import com.fitness.app.ui.base.BaseViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import android.util.Base64
+import org.json.JSONObject
 
 data class LoginUiState(
     val email: String = "",
@@ -56,6 +60,18 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         val body = gson.toJson(LoginRequest(uiState.value.email, uiState.value.password))
                         val response = ApiClient.post("/api/auth/login", body)
                         val responseBody = response.body?.string()
+                        val authHeader =
+                            response.header("Authentication")
+                                ?: response.header("Authorization")
+                        val setCookieHeaders = response.headers("Set-Cookie")
+                        val cookieAuth = setCookieHeaders
+                            .firstOrNull { it.startsWith("Authentication=") }
+                            ?.substringAfter("Authentication=")
+                            ?.substringBefore(";")
+                        android.util.Log.d(
+                            "LoginViewModel",
+                            "Login headers auth=${authHeader != null} setCookieCount=${setCookieHeaders.size}"
+                        )
                         if (response.code == 401) {
                             return@withContext Result.failure(Exception("Unauthorized: invalid credentials"))
                         }
@@ -63,12 +79,29 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             val message = responseBody?.takeIf { it.isNotBlank() } ?: "Login failed"
                             return@withContext Result.failure(Exception(message))
                         }
-                        val parsed = if (!responseBody.isNullOrBlank()) {
-                            gson.fromJson(responseBody, LoginResponse::class.java)
+                        if (!responseBody.isNullOrBlank()) {
+                            val obj = gson.fromJson(responseBody, JsonObject::class.java)
+                            val token =
+                                obj.get("Authentication")?.asString
+                                    ?: obj.get("token")?.asString
+                            val userObj = obj.getAsJsonObject("user")
+                            val username =
+                                userObj?.get("username")?.asString
+                                    ?: userObj?.get("email")?.asString
+                                    ?: uiState.value.email
+                            val cookieToken = NetworkConfig.getAuthCookieValue()
+                            UserSession.setUser(
+                                username = username,
+                                accessToken = token ?: authHeader ?: cookieAuth ?: cookieToken
+                            )
                         } else {
-                            LoginResponse()
+                            UserSession.setUser(username = uiState.value.email)
                         }
-                        Result.success(parsed)
+                        android.util.Log.d(
+                            "LoginViewModel",
+                            "Cookies after login: ${NetworkConfig.dumpCookies()}"
+                        )
+                        Result.success(Unit)
                     } catch (e: IOException) {
                         val msg = e.message?.takeIf { it.isNotBlank() } ?: "Network error. Please try again."
                         Result.failure(Exception(msg))
@@ -101,11 +134,34 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             updateState { it.copy(errorMessage = "Google login failed: missing token") }
             return
         }
+        android.util.Log.d(
+            "LoginViewModel",
+            "Google tokens received. accessTokenLength=${accessToken.length}"
+        )
+        val username = extractUsernameFromJwt(accessToken)
+        UserSession.setUser(userId = userId, username = username, accessToken = accessToken)
         updateState { it.copy(isLoading = false, errorMessage = null) }
         onSuccess()
     }
 
     fun clearError() {
         updateState { it.copy(errorMessage = null) }
+    }
+
+    private fun extractUsernameFromJwt(token: String): String? {
+        return try {
+            val parts = token.split(".")
+            if (parts.size < 2) return null
+            val payloadJson =
+                String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_WRAP))
+            val obj = JSONObject(payloadJson)
+            obj.optString("username")
+                .ifBlank {
+                    obj.optString("email")
+                }
+                .ifBlank { null }
+        } catch (e: Exception) {
+            null
+        }
     }
 }

@@ -38,12 +38,18 @@ class MainActivity : ComponentActivity() {
 
     private fun handleAuthDeepLink(intent: Intent?) {
         val data: Uri = intent?.data ?: return
-        if (data.scheme != "https") return
-        if (data.host != "node86.cs.colman.ac.il") return
-        if (!data.path.orEmpty().startsWith("/app/auth/callback")) return
+        val path = data.path.orEmpty()
+        if (!path.startsWith("/app/auth/callback")) return
+        val isProdLink =
+            data.scheme == "https" && data.host == "node86.cs.colman.ac.il"
+        if (!isProdLink) return
         val accessToken = data.getQueryParameter("code")
         val refreshToken = data.getQueryParameter("refreshToken")
         val userId = data.getQueryParameter("userId")
+        android.util.Log.d(
+            "MainActivity",
+            "Auth deep link received. hasToken=${!accessToken.isNullOrBlank()} tokenLength=${accessToken?.length ?: 0}"
+        )
         if (!accessToken.isNullOrBlank()) {
             GoogleAuthCodeStore.setResult(
                 com.fitness.app.auth.GoogleAuthResult(

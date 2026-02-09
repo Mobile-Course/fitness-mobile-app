@@ -3,6 +3,9 @@ package com.fitness.app.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -19,7 +22,11 @@ import com.fitness.app.data.model.Post
 import android.util.Base64
 
 @Composable
-fun PostItem(post: Post) {
+fun PostItem(
+        post: Post,
+        isLiked: Boolean,
+        onLikeClick: () -> Unit
+) {
     if (!post.pictures.isNullOrEmpty()) {
         android.util.Log.d("PostItem", "First Image: ${post.pictures.first().take(50)}...")
     }
@@ -123,6 +130,29 @@ fun PostItem(post: Post) {
                 if (post.description != null) {
                     Text(text = post.description, style = MaterialTheme.typography.bodyMedium)
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onLikeClick) {
+                    Icon(
+                            imageVector =
+                                    if (isLiked) Icons.Filled.Favorite
+                                    else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Like",
+                            tint =
+                                    if (isLiked) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Text(
+                        text = "${post.likeNumber} likes",
+                        style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }

@@ -2,8 +2,11 @@ package com.fitness.app.ui.screens.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fitness.app.auth.UserSession
+import com.fitness.app.data.model.Like
 import com.fitness.app.data.model.Post
 import com.fitness.app.data.repository.PostsRepository
+import com.fitness.app.network.NetworkConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -19,6 +22,10 @@ class FeedViewModel : ViewModel() {
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _likedPostIds = MutableStateFlow<Set<String>>(emptySet())
+    val likedPostIds: StateFlow<Set<String>> = _likedPostIds
+    val currentUsername: StateFlow<String?> = UserSession.username
 
     private var currentPage = 1
     private var isLastPage = false
@@ -77,5 +84,78 @@ class FeedViewModel : ViewModel() {
         isLastPage = false
         _posts.value = emptyList()
         loadPosts()
+    }
+
+    fun toggleLike(postId: String) {
+        viewModelScope.launch {
+            val currentPosts = _posts.value
+            val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
+
+            val username = currentUsername.value
+            val wasLiked =
+                    (username != null && target.likes?.any { it.username == username } == true) ||
+                            _likedPostIds.value.contains(postId)
+
+            val optimisticLikes =
+                    if (username == null) target.likes
+                    else {
+                        val list = (target.likes ?: emptyList()).toMutableList()
+                        if (wasLiked) {
+                            list.removeAll { it.username == username }
+                        } else {
+                            list.add(Like(username = username, picture = null))
+                        }
+                        list
+                    }
+
+            val optimisticLikeNumber =
+                    if (wasLiked) (target.likeNumber - 1).coerceAtLeast(0)
+                    else target.likeNumber + 1
+
+            val optimisticPost =
+                    target.copy(
+                            likes = optimisticLikes,
+                            likeNumber = optimisticLikeNumber
+                    )
+
+            _posts.value =
+                    currentPosts.map { post -> if (post.id == postId) optimisticPost else post }
+
+            val optimisticSet = _likedPostIds.value.toMutableSet()
+            if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
+            _likedPostIds.value = optimisticSet
+
+            android.util.Log.d(
+                    "FeedViewModel",
+                    "Like request cookies: ${NetworkConfig.dumpCookies()}"
+            )
+            val result = repository.likeOrUnlikePost(postId)
+            result
+                    .onSuccess { updatedPost ->
+                        _posts.value =
+                                _posts.value.map { post ->
+                                    if (post.id == updatedPost.id) updatedPost else post
+                                }
+
+                        if (username != null) {
+                            val serverLiked =
+                                    updatedPost.likes?.any { it.username == username } == true
+                            val next = _likedPostIds.value.toMutableSet()
+                            if (serverLiked) next.add(postId) else next.remove(postId)
+                            _likedPostIds.value = next
+                        }
+                    }
+                    .onFailure { e ->
+                        _posts.value = currentPosts
+                        _likedPostIds.value =
+                                if (wasLiked) _likedPostIds.value + postId
+                                else _likedPostIds.value - postId
+                        android.util.Log.e(
+                                "FeedViewModel",
+                                "Error liking post: ${e.message}",
+                                e
+                        )
+                    }
+        }
     }
 }

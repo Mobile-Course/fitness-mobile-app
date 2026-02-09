@@ -24,6 +24,8 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
     val posts by viewModel.posts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val likedPostIds by viewModel.likedPostIds.collectAsState()
+    val currentUsername by viewModel.currentUsername.collectAsState()
     val listState = rememberLazyListState()
 
     // Infinite scrolling logic
@@ -89,7 +91,16 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    items(posts, key = { it.id }) { post -> PostItem(post = post) }
+                    items(posts, key = { it.id }) { post ->
+                        val isLikedByUser =
+                                currentUsername != null &&
+                                        post.likes?.any { it.username == currentUsername } == true
+                        PostItem(
+                                post = post,
+                                isLiked = isLikedByUser || likedPostIds.contains(post.id),
+                                onLikeClick = { viewModel.toggleLike(post.id) }
+                        )
+                    }
 
                     if (isLoading) {
                         item {
