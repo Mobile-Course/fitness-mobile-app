@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.fitness.app.data.model.Post
+import android.util.Base64
 
 @Composable
 fun PostItem(post: Post) {
@@ -73,10 +75,13 @@ fun PostItem(post: Post) {
             if (!post.pictures.isNullOrEmpty()) {
                 val imageUrl = post.pictures.first()
                 if (imageUrl.isNotBlank()) {
+                    val imageModel = remember(imageUrl) {
+                        resolveImageModel(imageUrl)
+                    }
                     AsyncImage(
                             model =
                                     ImageRequest.Builder(LocalContext.current)
-                                            .data(imageUrl)
+                                            .data(imageModel)
                                             .listener(
                                                     onStart = {
                                                         android.util.Log.d(
@@ -120,5 +125,19 @@ fun PostItem(post: Post) {
                 }
             }
         }
+    }
+}
+
+private fun resolveImageModel(raw: String): Any? {
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+        return raw
+    }
+
+    val base64 = raw.substringAfter("base64,", raw)
+    return try {
+        Base64.decode(base64, Base64.DEFAULT)
+    } catch (e: IllegalArgumentException) {
+        android.util.Log.e("PostItem", "Invalid base64 image data", e)
+        null
     }
 }
