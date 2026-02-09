@@ -2,59 +2,107 @@ package com.fitness.app.ui.screens.feed
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitness.app.ui.components.PostItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedScreen() {
+fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
+    val posts by viewModel.posts.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val listState = rememberLazyListState()
+
+    // Infinite scrolling logic
+    val isScrollToEnd by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) return@derivedStateOf false
+
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisibleItemIndex >= totalItems - 2 // Load more when 2 items from bottom
+        }
+    }
+
+    LaunchedEffect(isScrollToEnd) {
+        if (isScrollToEnd && !isLoading) {
+            viewModel.loadPosts()
+        }
+    }
+
     val bgColor = MaterialTheme.colorScheme.background
     val accentDark = MaterialTheme.colorScheme.onBackground
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgColor)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().background(bgColor)) {
         // App Bar / Title
         TopAppBar(
-            title = {
-                Text(
-                    text = "Feed",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = accentDark
+                title = {
+                    Text(
+                            text = "Feed",
+                            style =
+                                    MaterialTheme.typography.headlineMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = accentDark
+                                    )
                     )
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = bgColor
-            )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
         )
 
         Divider(color = MaterialTheme.colorScheme.outline)
 
         // Content
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No posts yet. Be the first to share your workout!",
-                modifier = Modifier.padding(32.dp),
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = accentDark,
-                    fontSize = 18.sp,
-                    textAlign = TextAlign.Center
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (posts.isEmpty() && !isLoading && error == null) {
+                Text(
+                        text = "No posts yet. Be the first to share your workout!",
+                        modifier = Modifier.padding(32.dp),
+                        style =
+                                MaterialTheme.typography.bodyLarge.copy(
+                                        color = accentDark,
+                                        fontSize = 18.sp,
+                                        textAlign = TextAlign.Center
+                                )
                 )
-            )
+            } else {
+                LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(posts) { post -> PostItem(post = post) }
+
+                    if (isLoading) {
+                        item {
+                            Box(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                        }
+                    }
+                }
+            }
+
+            if (error != null && posts.isEmpty()) {
+                Text(
+                        text = error ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                        textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
