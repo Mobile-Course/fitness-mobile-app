@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation. NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -24,7 +24,8 @@ import androidx.navigation.compose.rememberNavController
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.ai_tips.AITipsScreen
 import com.fitness.app.ui.screens.feed.FeedScreen
-// import com.fitness.app.ui.screens.profile.ProfileScreen
+import com.fitness.app.ui.screens.profile.ProfileScreen
+import com.fitness.app.ui.screens.post.PostScreen
 
 sealed class BottomNavItem(
     val route: String,
@@ -120,13 +121,19 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                 FeedScreen()
             }
             composable(Screen.Post.route) {
-                Text("Post Screen Placeholder")
+                PostScreen(
+                    onPostCreated = {
+                        navController.navigate(Screen.Feed.route) {
+                            popUpTo(Screen.Feed.route) { inclusive = true }
+                        }
+                    }
+                )
             }
             composable(Screen.AITips.route) {
                 AITipsScreen()
             }
             composable(Screen.Profile.route) {
-                // ProfileScreen(onNavigateToSettings = onNavigateToSettings)
+                ProfileScreen(onNavigateToSettings = onNavigateToSettings)
             }
         }
     }
