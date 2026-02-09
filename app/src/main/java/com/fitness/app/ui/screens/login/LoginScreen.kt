@@ -51,6 +51,7 @@ fun LoginScreen(
     LaunchedEffect(googleResult) {
         val result = googleResult
         if (result != null && !result.accessToken.isNullOrBlank()) {
+            android.util.Log.d("LoginScreen", "Google result received. hasToken=true")
             viewModel.onGoogleTokensReceived(
                 accessToken = result.accessToken,
                 refreshToken = result.refreshToken,
@@ -58,6 +59,8 @@ fun LoginScreen(
                 onSuccess = onLoginSuccess
             )
             GoogleAuthCodeStore.clear()
+        } else if (result != null) {
+            android.util.Log.d("LoginScreen", "Google result received. hasToken=false")
         }
     }
 
