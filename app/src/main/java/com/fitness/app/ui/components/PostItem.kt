@@ -2,12 +2,19 @@ package com.fitness.app.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,7 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.fitness.app.data.model.Post
@@ -25,7 +34,8 @@ import android.util.Base64
 fun PostItem(
         post: Post,
         isLiked: Boolean,
-        onLikeClick: () -> Unit
+        onLikeClick: () -> Unit,
+        onAddComment: (String) -> Unit
 ) {
     if (!post.pictures.isNullOrEmpty()) {
         android.util.Log.d("PostItem", "First Image: ${post.pictures.first().take(50)}...")
@@ -134,11 +144,16 @@ fun PostItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            var showCommentInput by rememberSaveable(post.id) { mutableStateOf(false) }
+
             Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onLikeClick) {
+                IconButton(
+                        onClick = onLikeClick,
+                        modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                             imageVector =
                                     if (isLiked) Icons.Filled.Favorite
@@ -146,13 +161,98 @@ fun PostItem(
                             contentDescription = "Like",
                             tint =
                                     if (isLiked) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(22.dp)
                     )
                 }
                 Text(
-                        text = "${post.likeNumber} likes",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "${post.likeNumber}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
                 )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                IconButton(
+                        onClick = { showCommentInput = !showCommentInput },
+                        modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                            imageVector = Icons.Outlined.ChatBubbleOutline,
+                            contentDescription = "Comments",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                        text = "${(post.comments ?: emptyList()).size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val comments = post.comments ?: emptyList()
+            if (comments.isNotEmpty()) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                            text = "Comments",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    comments.forEach { comment ->
+                        Text(
+                                text = "${comment.author.username}: ${comment.content}",
+                                style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            if (showCommentInput) {
+                var commentText by rememberSaveable(post.id) { mutableStateOf("") }
+                Row(
+                        modifier =
+                                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                            value = commentText,
+                            onValueChange = { commentText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = { Text("Add a comment") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(24.dp),
+                            textStyle = TextStyle(fontSize = 12.sp),
+                            colors =
+                                    OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                    )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                            onClick = {
+                                val trimmed = commentText.trim()
+                                if (trimmed.isNotEmpty()) {
+                                    onAddComment(trimmed)
+                                    commentText = ""
+                                    showCommentInput = false
+                                }
+                            },
+                            modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                                imageVector = Icons.Outlined.Send,
+                                contentDescription = "Send comment",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
         }
     }

@@ -6,6 +6,10 @@ data class LikePostRequest(
         @SerializedName("_id") val id: String
 )
 
+data class AddCommentRequest(
+        val content: String
+)
+
 data class PaginationResponse<T>(
         val items: List<T>,
         val total: Int,

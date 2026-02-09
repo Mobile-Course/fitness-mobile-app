@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.fitness.app.auth.UserSession
 import com.fitness.app.data.model.Like
 import com.fitness.app.data.model.Post
+import com.fitness.app.data.model.Author
+import com.fitness.app.data.model.Comment
 import com.fitness.app.data.repository.PostsRepository
 import com.fitness.app.network.NetworkConfig
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -153,6 +155,48 @@ class FeedViewModel : ViewModel() {
                         android.util.Log.e(
                                 "FeedViewModel",
                                 "Error liking post: ${e.message}",
+                                e
+                        )
+                    }
+        }
+    }
+
+    fun addComment(postId: String, content: String) {
+        val trimmed = content.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            val currentPosts = _posts.value
+            val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
+
+            val username = currentUsername.value ?: "me"
+            val optimisticComment =
+                    Comment(
+                            content = trimmed,
+                            author = Author(id = "", username = username, picture = null),
+                            createdAt = ""
+                    )
+            val optimisticComments =
+                    (target.comments ?: emptyList()) + optimisticComment
+            val optimisticPost =
+                    target.copy(comments = optimisticComments)
+            _posts.value =
+                    currentPosts.map { post ->
+                        if (post.id == postId) optimisticPost else post
+                    }
+
+            val result = repository.addComment(postId, trimmed)
+            result
+                    .onSuccess { updatedPost ->
+                        _posts.value =
+                                _posts.value.map { post ->
+                                    if (post.id == updatedPost.id) updatedPost else post
+                                }
+                    }
+                    .onFailure { e ->
+                        _posts.value = currentPosts
+                        android.util.Log.e(
+                                "FeedViewModel",
+                                "Error adding comment: ${e.message}",
                                 e
                         )
                     }
