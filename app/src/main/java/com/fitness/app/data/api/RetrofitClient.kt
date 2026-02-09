@@ -15,7 +15,7 @@ object RetrofitClient {
         private const val BASE_URL = "https://node86.cs.colman.ac.il/"
 
         private val loggingInterceptor =
-                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+                HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
 
         private val cookieManager =
                 java.net.CookieManager().apply { setCookiePolicy(java.net.CookiePolicy.ACCEPT_ALL) }
@@ -38,7 +38,7 @@ object RetrofitClient {
                         init(null, arrayOf<TrustManager>(unsafeTrustManager), SecureRandom())
                 }
 
-        private val okHttpClient =
+        val okHttpClient =
                 OkHttpClient.Builder()
                         .cookieJar(okhttp3.JavaNetCookieJar(cookieManager))
                         .addInterceptor(loggingInterceptor)
@@ -46,7 +46,7 @@ object RetrofitClient {
                         .readTimeout(30, TimeUnit.SECONDS)
                         .writeTimeout(30, TimeUnit.SECONDS)
                         .sslSocketFactory(unsafeSslContext.socketFactory, unsafeTrustManager)
-                        .hostnameVerifier { hostname, _ -> hostname == "node86.cs.colman.ac.il" }
+                        .hostnameVerifier { _, _ -> true }
                         .build()
 
         private val retrofit =

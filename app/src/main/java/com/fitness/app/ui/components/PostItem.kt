@@ -1,31 +1,124 @@
 package com.fitness.app.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.fitness.app.data.model.Post
 
 @Composable
 fun PostItem(post: Post) {
+    if (!post.pictures.isNullOrEmpty()) {
+        android.util.Log.d("PostItem", "First Image: ${post.pictures.first().take(50)}...")
+    }
+
     Card(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                    text = post.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            if (post.description != null) {
-                Text(text = post.description, style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            // Header: Avatar + Username
+            Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(16.dp)
+            ) {
+                AsyncImage(
+                        model =
+                                ImageRequest.Builder(LocalContext.current)
+                                        .data(
+                                                post.author.picture
+                                                        ?: "https://ui-avatars.com/api/?name=${post.author.username}&background=random"
+                                        )
+                                        .listener(
+                                                onError = { _, result ->
+                                                    android.util.Log.e(
+                                                            "PostItem",
+                                                            "Avatar load failed: ${result.throwable.message}",
+                                                            result.throwable
+                                                    )
+                                                }
+                                        )
+                                        .build(),
+                        contentDescription = "Author Avatar",
+                        modifier = Modifier.size(40.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                            text = post.author.username,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                            text = "2 hours ago", // Placeholder for timestamp
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "By ${post.author.username}", style = MaterialTheme.typography.labelSmall)
+
+            // Post Image (if any)
+            if (!post.pictures.isNullOrEmpty()) {
+                val imageUrl = post.pictures.first()
+                if (imageUrl.isNotBlank()) {
+                    AsyncImage(
+                            model =
+                                    ImageRequest.Builder(LocalContext.current)
+                                            .data(imageUrl)
+                                            .listener(
+                                                    onStart = {
+                                                        android.util.Log.d(
+                                                                "PostItem",
+                                                                "Image request started: ${imageUrl.take(50)}..."
+                                                        )
+                                                    },
+                                                    onSuccess = { _, _ ->
+                                                        android.util.Log.d(
+                                                                "PostItem",
+                                                                "Image loaded successfully"
+                                                        )
+                                                    },
+                                                    onError = { _, result ->
+                                                        android.util.Log.e(
+                                                                "PostItem",
+                                                                "Image load failed: ${result.throwable.message}",
+                                                                result.throwable
+                                                        )
+                                                    }
+                                            )
+                                            .build(),
+                            contentDescription = "Post Image",
+                            modifier = Modifier.fillMaxWidth().height(250.dp),
+                            contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            // Content: Title + Description
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                        text = post.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (post.description != null) {
+                    Text(text = post.description, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
     }
 }

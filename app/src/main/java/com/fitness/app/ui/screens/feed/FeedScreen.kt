@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitness.app.ui.components.PostItem
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +38,15 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
         }
     }
 
-    LaunchedEffect(isScrollToEnd) {
-        if (isScrollToEnd && !isLoading) {
-            viewModel.loadPosts()
-        }
+    LaunchedEffect(listState) {
+        snapshotFlow { isScrollToEnd to isLoading }
+                .distinctUntilChanged()
+                .filter { (scrollToEnd, loading) -> scrollToEnd && !loading }
+                .collect {
+                    android.util.Log.d("FeedScreen", "Scroll to end detected. isLoading: $isLoading")
+                    android.util.Log.d("FeedScreen", "Triggering loadPosts")
+                    viewModel.loadPosts()
+                }
     }
 
     val bgColor = MaterialTheme.colorScheme.background
@@ -82,7 +89,7 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    items(posts) { post -> PostItem(post = post) }
+                    items(posts, key = { it.id }) { post -> PostItem(post = post) }
 
                     if (isLoading) {
                         item {

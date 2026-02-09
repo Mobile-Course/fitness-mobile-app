@@ -22,7 +22,7 @@ class FeedViewModel : ViewModel() {
 
     private var currentPage = 1
     private var isLastPage = false
-    private val limit = 10
+    private val limit = 3
 
     init {
         loadPosts()
@@ -35,18 +35,40 @@ class FeedViewModel : ViewModel() {
         _error.value = null
 
         viewModelScope.launch {
-            val result = repository.getPosts(currentPage, limit)
-            result
-                    .onSuccess { response ->
-                        val currentList = _posts.value.toMutableList()
-                        currentList.addAll(response.items)
-                        _posts.value = currentList
+            try {
+                android.util.Log.d("FeedViewModel", "Fetching page $currentPage with limit $limit")
+                val result = repository.getPosts(currentPage, limit)
+                result
+                        .onSuccess { response ->
+                            android.util.Log.d(
+                                    "FeedViewModel",
+                                    "Success: Received ${response.items.size} items"
+                            )
+                            val currentList = _posts.value.toMutableList()
+                            currentList.addAll(response.items)
+                            _posts.value = currentList
 
-                        currentPage++
-                        isLastPage = response.items.size < limit
-                    }
-                    .onFailure { e -> _error.value = e.message }
-            _isLoading.value = false
+                            currentPage++
+                            isLastPage = response.items.size < limit
+                            android.util.Log.d(
+                                    "FeedViewModel",
+                                    "Next page: $currentPage, isLastPage: $isLastPage"
+                            )
+                        }
+                        .onFailure { e ->
+                            android.util.Log.e(
+                                    "FeedViewModel",
+                                    "Error fetching posts: ${e.message}",
+                                    e
+                            )
+                            _error.value = e.message
+                        }
+            } catch (e: Exception) {
+                android.util.Log.e("FeedViewModel", "Unexpected error: ${e.message}", e)
+                _error.value = e.message
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
