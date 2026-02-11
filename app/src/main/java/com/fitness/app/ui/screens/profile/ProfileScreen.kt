@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.PostItem
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.filter
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
+    onEditProfile: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -85,17 +87,8 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(bgColor)
     ) {
-        // Top Bar
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Profile",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = accentDark
-                    )
-                )
-            },
+        // Minimized FitTrack branded header
+        FitTrackHeader(
             actions = {
                 IconButton(onClick = { showSettingsMenu = true }) {
                     Icon(
@@ -122,11 +115,8 @@ fun ProfileScreen(
                         }
                     )
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
+            }
         )
-
-        Divider(color = Color(0xFFE2E8F0))
 
         LazyColumn(
             state = listState,
@@ -209,7 +199,7 @@ fun ProfileScreen(
                         }
 
                         OutlinedButton(
-                            onClick = { /* Edit profile */ },
+                            onClick = onEditProfile,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(4.dp),
                             border = BorderStroke(1.dp, Color(0xFFE2E8F0))

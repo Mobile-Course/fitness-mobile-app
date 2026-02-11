@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.GradientButton
 import com.fitness.app.ui.components.QuickQuestionButton
 import com.fitness.app.ui.components.TipCard
@@ -51,21 +52,8 @@ fun AITipsScreen(
                 focusManager.clearFocus()
             }
     ) {
-        // TOP APP BAR
-        TopAppBar(
-            title = {
-                Text(
-                    text = "AI Fitness Tips",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = accentDark
-                    )
-                )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
-        )
-
-        Divider(color = MaterialTheme.colorScheme.outline)
+        // Minimized FitTrack branded header
+        FitTrackHeader()
 
         // MAIN CONTENT
         Column(

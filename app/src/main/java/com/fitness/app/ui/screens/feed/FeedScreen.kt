@@ -14,6 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.PostItem
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -55,22 +56,8 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
     val accentDark = MaterialTheme.colorScheme.onBackground
 
     Column(modifier = Modifier.fillMaxSize().background(bgColor)) {
-        // App Bar / Title
-        TopAppBar(
-                title = {
-                    Text(
-                            text = "Feed",
-                            style =
-                                    MaterialTheme.typography.headlineMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = accentDark
-                                    )
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
-        )
-
-        Divider(color = MaterialTheme.colorScheme.outline)
+        // Minimized FitTrack branded header
+        FitTrackHeader()
 
         // Content
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

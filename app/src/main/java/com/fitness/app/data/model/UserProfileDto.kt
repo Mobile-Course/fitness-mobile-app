@@ -12,7 +12,8 @@ data class UserProfileDto(
     val email: String? = null,
     val streak: Int? = null,
     @SerializedName("sportType") val sportType: String? = null,
-    @SerializedName("description") val description: String? = null
+    @SerializedName("description") val description: String? = null,
+    @SerializedName("preferences") val preferences: UserPreferencesDto? = null
 )
 
 fun UserProfileDto.extractId(): String? {

@@ -3,6 +3,7 @@ package com.fitness.app.data.repository
 import com.fitness.app.data.api.RetrofitClient
 import com.fitness.app.data.model.LoginRequest
 import com.fitness.app.data.model.LoginResponse
+import com.fitness.app.data.model.UpdateUserProfileRequest
 import com.fitness.app.data.model.UserProfileDto
 
 class AuthRepository {
@@ -28,6 +29,19 @@ class AuthRepository {
                 Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("Profile fetch failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateProfile(request: UpdateUserProfileRequest): Result<UserProfileDto> {
+        return try {
+            val response = apiService.updateProfile(request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Profile update failed: ${response.message()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
