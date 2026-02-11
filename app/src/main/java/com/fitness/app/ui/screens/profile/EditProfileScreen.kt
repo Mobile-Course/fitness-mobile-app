@@ -85,6 +85,8 @@ fun EditProfileScreen(
             "FitnessEnthusiast"
         )
     var sportTypeExpanded by remember { mutableStateOf(false) }
+    val sexOptions = listOf("Male", "Female", "Other")
+    var sexExpanded by remember { mutableStateOf(false) }
     val imagePicker =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -240,7 +242,7 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = uiState.age,
                     onValueChange = viewModel::onAgeChanged,
-                    label = { Text("Age") },
+                    label = { Text("Age", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -248,7 +250,7 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = uiState.height,
                     onValueChange = viewModel::onHeightChanged,
-                    label = { Text("Height (cm)") },
+                    label = { Text("Height", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -256,37 +258,62 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = uiState.currentWeight,
                     onValueChange = viewModel::onCurrentWeightChanged,
-                    label = { Text("Weight (kg)") },
+                    label = { Text("Weight", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
 
-            // Row 2: Sex, Body Fat %, Workouts Per Week
+            // Row 2: Sex, Body Fat %, VO2max
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = uiState.sex,
-                    onValueChange = viewModel::onSexChanged,
-                    label = { Text("Sex") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
-                )
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = uiState.sex,
+                        onValueChange = { },
+                        label = { Text("Sex", style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { sexExpanded = true },
+                        readOnly = true,
+                        singleLine = true,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = sexExpanded,
+                        onDismissRequest = { sexExpanded = false }
+                    ) {
+                        sexOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    viewModel.onSexChanged(option)
+                                    sexExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = uiState.bodyFatPercentage,
                     onValueChange = viewModel::onBodyFatPercentageChanged,
-                    label = { Text("Body Fat %") },
+                    label = { Text("Fat %", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
-                    value = uiState.workoutsPerWeek,
-                    onValueChange = viewModel::onWorkoutsPerWeekChanged,
-                    label = { Text("Workouts/Wk") },
+                    value = uiState.vo2max,
+                    onValueChange = viewModel::onVo2maxChanged,
+                    label = { Text("VO2max", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -299,7 +326,7 @@ fun EditProfileScreen(
                 color = accentDark
             )
 
-            // Row 3: Squat, Bench, Deadlift, VO2max
+            // Row 3: Squat, Bench, Deadlift
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -307,7 +334,7 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = uiState.oneRmSquat,
                     onValueChange = viewModel::onOneRmSquatChanged,
-                    label = { Text("Squat") },
+                    label = { Text("Squat", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -315,7 +342,7 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = uiState.oneRmBench,
                     onValueChange = viewModel::onOneRmBenchChanged,
-                    label = { Text("Bench") },
+                    label = { Text("Bench", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -323,15 +350,7 @@ fun EditProfileScreen(
                 OutlinedTextField(
                     value = uiState.oneRmDeadlift,
                     onValueChange = viewModel::onOneRmDeadliftChanged,
-                    label = { Text("Deadlift") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = uiState.vo2max,
-                    onValueChange = viewModel::onVo2maxChanged,
-                    label = { Text("VO2max") },
+                    label = { Text("Deadlift", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)

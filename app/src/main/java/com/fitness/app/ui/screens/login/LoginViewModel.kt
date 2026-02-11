@@ -249,7 +249,9 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                     oneRmSquat = extra.oneRm?.squat,
                                     oneRmBench = extra.oneRm?.bench,
                                     oneRmDeadlift = extra.oneRm?.deadlift,
-                                    workoutsPerWeek = extra.workoutsPerWeek
+                                    workoutsPerWeek = extra.workoutsPerWeek,
+                                    height = extra.height,
+                                    vo2max = extra.vo2max
                                 )
                             dao.upsert(updated)
                         }

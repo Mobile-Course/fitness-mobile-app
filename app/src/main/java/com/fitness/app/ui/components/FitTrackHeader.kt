@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,16 +26,20 @@ fun FitTrackHeader(
     actions: @Composable (RowScope.() -> Unit)? = null
 ) {
     val brandColor = Color(0xFF3B3FC7) // deep indigo matching the icon in the picture
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val headerHeight = screenHeight * 0.08f
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(headerHeight),
         color = Color.White,
         tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Optional leading navigation icon
