@@ -142,6 +142,13 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                         val currentList = _posts.value.toMutableList()
                         currentList.addAll(response.items)
                         _posts.value = currentList
+                        if (currentPage == 1) {
+                            val totalCount =
+                                if (response.total > 0) response.total else currentList.size
+                            updateState { current ->
+                                current.copy(profile = current.profile.copy(posts = totalCount))
+                            }
+                        }
 
                         currentPage++
                         isLastPage = response.items.size < limit
@@ -177,9 +184,10 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
 
             val postsResult = postsRepository.getAllPostsByAuthor(authorId)
             postsResult
-                .onSuccess { list ->
+                .onSuccess { response ->
+                    val count = if (response.total > 0) response.total else response.items.size
                     updateState { current ->
-                        current.copy(profile = current.profile.copy(posts = list.size))
+                        current.copy(profile = current.profile.copy(posts = count))
                     }
                 }
         }
