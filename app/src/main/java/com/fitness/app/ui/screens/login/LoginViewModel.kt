@@ -14,6 +14,11 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import android.util.Base64
 import org.json.JSONObject
+import android.content.Context
+import com.fitness.app.data.local.AppDatabase
+import com.fitness.app.data.model.fullName
+import com.fitness.app.data.model.toUserEntity
+import com.fitness.app.data.repository.AuthRepository
 
 data class LoginUiState(
     val email: String = "",
@@ -27,6 +32,7 @@ data class LoginUiState(
 
 class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
     private val gson = Gson()
+    private val authRepository = AuthRepository()
 
     fun onEmailChanged(email: String) {
         updateState { it.copy(email = email, emailError = null, errorMessage = null) }
@@ -40,7 +46,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
         updateState { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun onSignInClicked(onSuccess: () -> Unit) {
+    fun onSignInClicked(onSuccess: () -> Unit, context: Context) {
         // Validation
         var hasError = false
         if (uiState.value.email.isBlank()) {
@@ -99,12 +105,15 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                     .ifBlank { null }
                             val email = userObj?.get("email")?.asString ?: uiState.value.email
                             val picture = userObj?.get("picture")?.asString
+                            val description =
+                                userObj?.get("description")?.asString
                             val cookieToken = NetworkConfig.getAuthCookieValue()
                             UserSession.setUser(
                                 name = fullName,
                                 username = username,
                                 email = email,
                                 picture = picture,
+                                bio = description,
                                 accessToken = token ?: authHeader ?: cookieAuth ?: cookieToken
                             )
                         } else {
@@ -114,6 +123,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             "LoginViewModel",
                             "Cookies after login: ${NetworkConfig.dumpCookies()}"
                         )
+                        fetchAndPersistProfile(context)
                         Result.success(Unit)
                     } catch (e: IOException) {
                         val msg = e.message?.takeIf { it.isNotBlank() } ?: "Network error. Please try again."
@@ -140,6 +150,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
         accessToken: String?,
         refreshToken: String?,
         userId: String?,
+        context: Context,
         onSuccess: () -> Unit
     ) {
         // TODO: Persist tokens securely and fetch user profile if needed.
@@ -159,8 +170,11 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             email = email,
             accessToken = accessToken
         )
-        updateState { it.copy(isLoading = false, errorMessage = null) }
-        onSuccess()
+        viewModelScope.launch {
+            fetchAndPersistProfile(context)
+            updateState { it.copy(isLoading = false, errorMessage = null) }
+            onSuccess()
+        }
     }
 
     fun clearError() {
@@ -181,6 +195,32 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                 .ifBlank { null }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private suspend fun fetchAndPersistProfile(context: Context) {
+        withContext(Dispatchers.IO) {
+            val profileResult = authRepository.getProfile()
+            profileResult.fold(
+                onSuccess = { profile ->
+                    val entity = profile.toUserEntity()
+                    AppDatabase.getInstance(context).userDao().upsert(entity)
+                    UserSession.setUser(
+                        name = profile.fullName(),
+                        username = entity.username,
+                        email = profile.email,
+                        picture = profile.picture,
+                        bio = profile.description
+                    )
+                },
+                onFailure = { error ->
+                    android.util.Log.e(
+                        "LoginViewModel",
+                        "Profile fetch failed: ${error.message}",
+                        error
+                    )
+                }
+            )
         }
     }
 }

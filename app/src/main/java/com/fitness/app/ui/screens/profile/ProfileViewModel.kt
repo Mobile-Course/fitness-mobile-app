@@ -11,7 +11,7 @@ data class UserProfile(
     val username: String = "user",
     val email: String = "",
     val picture: String? = null,
-    val bio: String = "Fitness enthusiast | Building strength",
+    val bio: String = "",
     val workouts: Int = 0,
     val streak: Int = 0,
     val posts: Int = 0
@@ -38,9 +38,10 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 UserSession.name,
                 UserSession.username,
                 UserSession.email,
-                UserSession.picture
-            ) { name, username, email, picture ->
-                ProfileSessionFields(name, username, email, picture)
+                UserSession.picture,
+                UserSession.bio
+            ) { name, username, email, picture, bio ->
+                ProfileSessionFields(name, username, email, picture, bio)
             }.collect { fields ->
                 updateState { current ->
                     val updatedProfile =
@@ -54,7 +55,10 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                             email =
                                 fields.email?.takeIf { it.isNotBlank() }
                                     ?: current.profile.email,
-                            picture = fields.picture ?: current.profile.picture
+                            picture = fields.picture ?: current.profile.picture,
+                            bio =
+                                fields.bio?.takeIf { it.isNotBlank() }
+                                    ?: current.profile.bio
                         )
                     current.copy(profile = updatedProfile)
                 }
@@ -67,5 +71,6 @@ private data class ProfileSessionFields(
     val name: String?,
     val username: String?,
     val email: String?,
-    val picture: String?
+    val picture: String?,
+    val bio: String?
 )

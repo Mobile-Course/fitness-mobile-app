@@ -56,6 +56,7 @@ fun LoginScreen(
                 accessToken = result.accessToken,
                 refreshToken = result.refreshToken,
                 userId = result.userId,
+                context = context,
                 onSuccess = onLoginSuccess
             )
             GoogleAuthCodeStore.clear()
@@ -246,7 +247,7 @@ fun LoginScreen(
 
                     // Sign In Button
                     GradientButton(
-                        onClick = { viewModel.onSignInClicked(onLoginSuccess) },
+                        onClick = { viewModel.onSignInClicked(onLoginSuccess, context) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
