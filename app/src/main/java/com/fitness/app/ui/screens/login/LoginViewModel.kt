@@ -109,14 +109,16 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             val description =
                                 userObj?.get("description")?.asString
                             val cookieToken = NetworkConfig.getAuthCookieValue()
+                            val resolvedToken = token ?: authHeader ?: cookieAuth ?: cookieToken
                             UserSession.setUser(
                                 name = fullName,
                                 username = username,
                                 email = email,
                                 picture = picture,
                                 bio = description,
-                                accessToken = token ?: authHeader ?: cookieAuth ?: cookieToken
+                                accessToken = resolvedToken
                             )
+                            UserSession.persistAccessToken(context, resolvedToken)
                         } else {
                             UserSession.setUser(username = uiState.value.email, email = uiState.value.email)
                         }
@@ -171,6 +173,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             email = email,
             accessToken = accessToken
         )
+        UserSession.persistAccessToken(context, accessToken)
         viewModelScope.launch {
             fetchAndPersistProfile(context)
             updateState { it.copy(isLoading = false, errorMessage = null) }
@@ -212,7 +215,8 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         username = entity.username,
                         email = profile.email,
                         picture = profile.picture,
-                        bio = profile.description
+                        bio = profile.description,
+                        streak = profile.streak
                     )
                 },
                 onFailure = { error ->

@@ -136,7 +136,9 @@ fun ProfileScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
                         ) {
                             AsyncImage(
                                 model =
@@ -147,7 +149,7 @@ fun ProfileScreen(
                                 modifier = Modifier.size(80.dp).clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
-                            Spacer(modifier = Modifier.width(50.dp))
+                            Spacer(modifier = Modifier.weight(1f))
                             StatCard(
                                 value = uiState.profile.streak.toString(),
                                 label = "Streak",
@@ -247,6 +249,7 @@ fun ProfileScreen(
                 if (isPostsLoading) {
                     item {
                         Box(
+                            modifier = Modifier.fillMaxWidth(),
                             contentAlignment = Alignment.Center
                         ) { CircularProgressIndicator() }
                     }

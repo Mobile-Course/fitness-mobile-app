@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
@@ -35,6 +36,17 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import android.net.Uri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +60,12 @@ fun EditProfileScreen(
     val scrollState = rememberScrollState()
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
+    val imagePicker =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
+            viewModel.onImageSelected(uri)
+        }
 
     Scaffold(
         topBar = {
@@ -80,6 +98,39 @@ fun EditProfileScreen(
                     ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val selectedUri =
+                uiState.imageUri?.let { Uri.parse(it) }
+            val previewModel =
+                selectedUri
+                    ?: uiState.picture.takeIf { it.isNotBlank() }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(previewModel)
+                            .crossfade(true)
+                            .build(),
+                    contentDescription = "Profile picture",
+                    modifier = Modifier.size(72.dp).clip(CircleShape)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                OutlinedButton(
+                    onClick = { imagePicker.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Choose Photo")
+                }
+            }
+
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = viewModel::onNameChanged,
@@ -101,13 +152,6 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation()
-            )
-            OutlinedTextField(
-                value = uiState.picture,
-                onValueChange = viewModel::onPictureChanged,
-                label = { Text("Picture URL") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
             )
             OutlinedTextField(
                 value = uiState.sportType,

@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
                                         .userDao()
                                         .getUser()
                                 if (user != null) {
+                                    UserSession.restoreAccessToken(this@MainActivity)
                                     UserSession.setUser(
                                         name = listOfNotNull(user.name, user.lastName)
                                             .joinToString(" ")
@@ -52,7 +53,8 @@ class MainActivity : ComponentActivity() {
                                         userId = user.userId,
                                         email = user.email,
                                         picture = user.picture,
-                                        bio = user.description
+                                        bio = user.description,
+                                        streak = user.streak
                                     )
                                     "main"
                                 } else {

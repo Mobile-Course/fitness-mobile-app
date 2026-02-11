@@ -35,12 +35,15 @@ object NetworkConfig {
             .cookieJar(JavaNetCookieJar(cookieManager))
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
-                val token = UserSession.getAccessToken()
+                val token = UserSession.getAccessToken()?.trim()
                 if (!token.isNullOrBlank()) {
-                    requestBuilder.addHeader("Authorization", "Bearer $token")
-                    requestBuilder.addHeader("Authentication", "Bearer $token")
+                    val headerValue =
+                        if (token.startsWith("Bearer ")) token else "Bearer $token"
+                    requestBuilder.addHeader("Authorization", headerValue)
+                    requestBuilder.addHeader("Authentication", headerValue)
                     // Some backends read JWT only from cookies.
-                    requestBuilder.addHeader("Cookie", "Authentication=$token")
+                    val cookieValue = headerValue.removePrefix("Bearer ").trim()
+                    requestBuilder.addHeader("Cookie", "Authentication=$cookieValue")
                 } else {
                     val cookieToken = getAuthCookieValue()
                     if (!cookieToken.isNullOrBlank()) {

@@ -5,6 +5,8 @@ import com.fitness.app.data.model.LoginRequest
 import com.fitness.app.data.model.LoginResponse
 import com.fitness.app.data.model.UpdateUserProfileRequest
 import com.fitness.app.data.model.UserProfileDto
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 class AuthRepository {
     private val apiService = RetrofitClient.authApiService
@@ -38,6 +40,36 @@ class AuthRepository {
     suspend fun updateProfile(request: UpdateUserProfileRequest): Result<UserProfileDto> {
         return try {
             val response = apiService.updateProfile(request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Profile update failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateProfileWithImage(
+        file: MultipartBody.Part,
+        password: RequestBody? = null,
+        name: RequestBody? = null,
+        lastName: RequestBody? = null,
+        sportType: RequestBody? = null,
+        description: RequestBody? = null,
+        weeklyGoal: RequestBody? = null
+    ): Result<UserProfileDto> {
+        return try {
+            val response =
+                apiService.updateProfileWithImage(
+                    file = file,
+                    password = password,
+                    name = name,
+                    lastName = lastName,
+                    sportType = sportType,
+                    description = description,
+                    weeklyGoal = weeklyGoal
+                )
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {

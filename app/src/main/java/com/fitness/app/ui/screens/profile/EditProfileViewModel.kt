@@ -1,6 +1,7 @@
 package com.fitness.app.ui.screens.profile
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.fitness.app.auth.UserSession
 import com.fitness.app.data.local.AppDatabase
@@ -14,12 +15,17 @@ import com.fitness.app.ui.base.BaseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 data class EditProfileUiState(
     val password: String = "",
     val name: String = "",
     val lastName: String = "",
     val picture: String = "",
+    val imageUri: String? = null,
     val sportType: String = "",
     val weeklyGoal: String = "",
     val description: String = "",
@@ -99,6 +105,12 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
         updateState { it.copy(picture = value, errorMessage = null) }
     }
 
+    fun onImageSelected(uri: Uri?) {
+        updateState {
+            it.copy(imageUri = uri?.toString(), errorMessage = null)
+        }
+    }
+
     fun onSportTypeChanged(value: String) {
         updateState { it.copy(sportType = value, errorMessage = null) }
     }
@@ -124,21 +136,41 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
 
         updateState { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            val request =
-                UpdateUserProfileRequest(
-                    password = uiState.value.password.trim().ifBlank { null },
-                    name = uiState.value.name.trim().ifBlank { null },
-                    lastName = uiState.value.lastName.trim().ifBlank { null },
-                    picture = uiState.value.picture.trim().ifBlank { null },
-                    sportType = uiState.value.sportType.trim().ifBlank { null },
-                    preferences =
-                        weeklyGoal?.let { goal -> UserPreferencesDto(weeklyGoal = goal) },
-                    description = uiState.value.description.trim().ifBlank { null }
-                )
-
+            val imageUri = uiState.value.imageUri?.let { Uri.parse(it) }
             val result =
                 withContext(Dispatchers.IO) {
-                    authRepository.updateProfile(request)
+                    if (imageUri != null) {
+                        val filePart = createFilePart(context, imageUri)
+                        if (filePart == null) {
+                            return@withContext Result.failure(
+                                Exception("Unable to read selected image")
+                            )
+                        }
+                        authRepository.updateProfileWithImage(
+                            file = filePart,
+                            password = textPart(uiState.value.password),
+                            name = textPart(uiState.value.name),
+                            lastName = textPart(uiState.value.lastName),
+                            sportType = textPart(uiState.value.sportType),
+                            description = textPart(uiState.value.description),
+                            weeklyGoal = weeklyGoal?.let { goal -> textPart(goal.toString()) }
+                        )
+                    } else {
+                        val request =
+                            UpdateUserProfileRequest(
+                                password = uiState.value.password.trim().ifBlank { null },
+                                name = uiState.value.name.trim().ifBlank { null },
+                                lastName = uiState.value.lastName.trim().ifBlank { null },
+                                picture = uiState.value.picture.trim().ifBlank { null },
+                                sportType = uiState.value.sportType.trim().ifBlank { null },
+                                preferences =
+                                    weeklyGoal?.let { goal ->
+                                        UserPreferencesDto(weeklyGoal = goal)
+                                    },
+                                description = uiState.value.description.trim().ifBlank { null }
+                            )
+                        authRepository.updateProfile(request)
+                    }
                 }
 
             result.fold(
@@ -152,7 +184,8 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
                             username = entity.username,
                             email = profile.email,
                             picture = profile.picture,
-                            bio = profile.description
+                            bio = profile.description,
+                            streak = profile.streak
                         )
                     }
                     updateState { it.copy(isLoading = false, errorMessage = null) }
@@ -162,6 +195,40 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
                     updateState { it.copy(isLoading = false, errorMessage = error.message) }
                 }
             )
+        }
+    }
+
+    private fun textPart(value: String?): RequestBody? {
+        val trimmed = value?.trim().orEmpty()
+        if (trimmed.isBlank()) return null
+        return trimmed.toRequestBody("text/plain".toMediaType())
+    }
+
+    private fun createFilePart(context: Context, uri: Uri): MultipartBody.Part? {
+        return try {
+            val resolver = context.contentResolver
+            val mimeType = resolver.getType(uri) ?: "image/*"
+            val name = queryFileName(context, uri) ?: "avatar.jpg"
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+            val body = bytes.toRequestBody(mimeType.toMediaType())
+            MultipartBody.Part.createFormData("file", name, body)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun queryFileName(context: Context, uri: Uri): String? {
+        val resolver = context.contentResolver
+        val cursor =
+            resolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?: return null
+        cursor.use {
+            return if (it.moveToFirst()) {
+                val index = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (index >= 0) it.getString(index) else null
+            } else {
+                null
+            }
         }
     }
 }

@@ -2,12 +2,11 @@ package com.fitness.app.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,14 +43,13 @@ fun FitTrackHeader(
                 Spacer(modifier = Modifier.width(8.dp))
             }
 
-            // Brand logo: rotated scissors icon + "FitTrack" text
+            // Brand logo: dumbbell icon + "FitTrack" text
             Icon(
-                imageVector = Icons.Default.ContentCut,
+                imageVector = Icons.Default.FitnessCenter,
                 contentDescription = "FitTrack logo",
                 tint = brandColor,
                 modifier = Modifier
                     .size(22.dp)
-                    .rotate(-45f)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(

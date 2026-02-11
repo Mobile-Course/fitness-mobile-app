@@ -73,9 +73,9 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 UserSession.username,
                 UserSession.email,
                 UserSession.picture,
-                UserSession.bio
-            ) { name, username, email, picture, bio ->
-                ProfileSessionFields(name, username, email, picture, bio)
+                combine(UserSession.bio, UserSession.streak) { bio, streak -> bio to streak }
+            ) { name, username, email, picture, bioStreak ->
+                ProfileSessionFields(name, username, email, picture, bioStreak.first, bioStreak.second)
             }.collect { fields ->
                 updateState { current ->
                     val updatedProfile =
@@ -92,7 +92,8 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                             picture = fields.picture ?: current.profile.picture,
                             bio =
                                 fields.bio?.takeIf { it.isNotBlank() }
-                                    ?: current.profile.bio
+                                    ?: current.profile.bio,
+                            streak = fields.streak ?: current.profile.streak
                         )
                     current.copy(profile = updatedProfile)
                 }
@@ -118,6 +119,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
             withContext(Dispatchers.IO) {
                 AppDatabase.getInstance(context).userDao().clear()
             }
+            UserSession.clearPersistedAccessToken(context)
             UserSession.clear()
             try {
                 NetworkConfig.cookieManager.cookieStore.removeAll()
@@ -177,9 +179,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
             profileResult
                 .onSuccess { profile ->
                     val streak = profile.streak ?: 0
-                    updateState { current ->
-                        current.copy(profile = current.profile.copy(streak = streak))
-                    }
+                    UserSession.setUser(streak = streak)
                 }
 
             val postsResult = postsRepository.getAllPostsByAuthor(authorId)
@@ -300,5 +300,6 @@ private data class ProfileSessionFields(
     val username: String?,
     val email: String?,
     val picture: String?,
-    val bio: String?
+    val bio: String?,
+    val streak: Int?
 )
