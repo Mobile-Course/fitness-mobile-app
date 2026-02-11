@@ -6,6 +6,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.fitness.app.network.NetworkConfig
+import com.fitness.app.data.api.UserProfilesApiService
 
 object RetrofitClient {
         private const val BASE_URL = "https://node86.cs.colman.ac.il/"
@@ -30,4 +31,6 @@ object RetrofitClient {
 
         val authApiService: AuthApiService = retrofit.create(AuthApiService::class.java)
         val postsApiService: PostsApiService = retrofit.create(PostsApiService::class.java)
+        val userProfilesApiService: UserProfilesApiService =
+                retrofit.create(UserProfilesApiService::class.java)
 }

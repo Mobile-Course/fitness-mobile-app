@@ -14,9 +14,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +31,10 @@ import com.fitness.app.ui.components.FitTrackHeader
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +54,8 @@ import androidx.compose.foundation.shape.CircleShape
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import android.net.Uri
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +69,22 @@ fun EditProfileScreen(
     val scrollState = rememberScrollState()
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
+    val sportTypeOptions =
+        listOf(
+            "Athlete",
+            "Runner",
+            "Cyclist",
+            "Swimmer",
+            "Weightlifter",
+            "Bodybuilder",
+            "CrossFit",
+            "Yoga Practitioner",
+            "Martial Artist",
+            "Climber",
+            "Dancer",
+            "FitnessEnthusiast"
+        )
+    var sportTypeExpanded by remember { mutableStateOf(false) }
     val imagePicker =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()
@@ -67,10 +92,14 @@ fun EditProfileScreen(
             viewModel.onImageSelected(uri)
         }
 
+    LaunchedEffect(Unit) {
+        viewModel.loadLocalDefaults(context)
+    }
+
     Scaffold(
         topBar = {
             FitTrackHeader(
-                navigationIcon = {
+                actions = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
@@ -139,13 +168,6 @@ fun EditProfileScreen(
                 singleLine = true
             )
             OutlinedTextField(
-                value = uiState.lastName,
-                onValueChange = viewModel::onLastNameChanged,
-                label = { Text("Last Name") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-            OutlinedTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChanged,
                 label = { Text("Password") },
@@ -153,13 +175,41 @@ fun EditProfileScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation()
             )
-            OutlinedTextField(
-                value = uiState.sportType,
-                onValueChange = viewModel::onSportTypeChanged,
-                label = { Text("Sport Type") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = uiState.sportType,
+                    onValueChange = { },
+                    label = { Text("Sport Type") },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { sportTypeExpanded = true },
+                    readOnly = true,
+                    singleLine = true,
+                    trailingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null
+                        )
+                    }
+                )
+                DropdownMenu(
+                    expanded = sportTypeExpanded,
+                    onDismissRequest = { sportTypeExpanded = false }
+                ) {
+                    sportTypeOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                viewModel.onSportTypeChanged(option)
+                                sportTypeExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
             OutlinedTextField(
                 value = uiState.weeklyGoal,
                 onValueChange = viewModel::onWeeklyGoalChanged,
@@ -175,6 +225,118 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
+
+            Text(
+                text = "Basics",
+                style = MaterialTheme.typography.titleMedium,
+                color = accentDark
+            )
+
+            // Row 1: Age, Height, Weight
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = uiState.age,
+                    onValueChange = viewModel::onAgeChanged,
+                    label = { Text("Age") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = uiState.height,
+                    onValueChange = viewModel::onHeightChanged,
+                    label = { Text("Height (cm)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = uiState.currentWeight,
+                    onValueChange = viewModel::onCurrentWeightChanged,
+                    label = { Text("Weight (kg)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            // Row 2: Sex, Body Fat %, Workouts Per Week
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = uiState.sex,
+                    onValueChange = viewModel::onSexChanged,
+                    label = { Text("Sex") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = uiState.bodyFatPercentage,
+                    onValueChange = viewModel::onBodyFatPercentageChanged,
+                    label = { Text("Body Fat %") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = uiState.workoutsPerWeek,
+                    onValueChange = viewModel::onWorkoutsPerWeekChanged,
+                    label = { Text("Workouts/Wk") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            Text(
+                text = "One Rep Max (1RM)",
+                style = MaterialTheme.typography.titleMedium,
+                color = accentDark
+            )
+
+            // Row 3: Squat, Bench, Deadlift, VO2max
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = uiState.oneRmSquat,
+                    onValueChange = viewModel::onOneRmSquatChanged,
+                    label = { Text("Squat") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = uiState.oneRmBench,
+                    onValueChange = viewModel::onOneRmBenchChanged,
+                    label = { Text("Bench") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = uiState.oneRmDeadlift,
+                    onValueChange = viewModel::onOneRmDeadliftChanged,
+                    label = { Text("Deadlift") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                OutlinedTextField(
+                    value = uiState.vo2max,
+                    onValueChange = viewModel::onVo2maxChanged,
+                    label = { Text("VO2max") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
 
             if (!uiState.errorMessage.isNullOrBlank()) {
                 Text(

@@ -38,7 +38,24 @@ fun UserProfileDto.toUserEntity(): UserEntity {
         email = email,
         streak = streak,
         sportType = sportType,
-        description = description
+        description = description,
+        profileSummaryText = null,
+        lastWorkoutVolume = null,
+        lastWorkoutIntensity = null,
+        lastWorkoutFocusPoints = null,
+        lastWorkoutCaloriesBurned = null,
+        lastWorkoutDuration = null,
+        updateCount = null,
+        currentWeight = null,
+        age = null,
+        sex = null,
+        bodyFatPercentage = null,
+        oneRmSquat = null,
+        oneRmBench = null,
+        oneRmDeadlift = null,
+        workoutsPerWeek = null,
+        height = null,
+        vo2max = null
     )
 }
 

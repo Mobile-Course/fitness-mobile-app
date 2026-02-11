@@ -13,5 +13,22 @@ data class UserEntity(
     val email: String?,
     val streak: Int?,
     val sportType: String?,
-    val description: String?
+    val description: String?,
+    val profileSummaryText: String?,
+    val lastWorkoutVolume: Int?,
+    val lastWorkoutIntensity: String?,
+    val lastWorkoutFocusPoints: String?,
+    val lastWorkoutCaloriesBurned: Int?,
+    val lastWorkoutDuration: Int?,
+    val updateCount: Int?,
+    val currentWeight: Int?,
+    val age: Int?,
+    val sex: String?,
+    val bodyFatPercentage: Int?,
+    val oneRmSquat: Int?,
+    val oneRmBench: Int?,
+    val oneRmDeadlift: Int?,
+    val workoutsPerWeek: Int?,
+    val height: Int?,
+    val vo2max: Int?
 )

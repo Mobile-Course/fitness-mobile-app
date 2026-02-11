@@ -125,11 +125,8 @@ fun ProfileScreen(
         ) {
             item {
                 // Profile Header Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = cardBg),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                Box(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp)
@@ -249,7 +246,7 @@ fun ProfileScreen(
                 if (isPostsLoading) {
                     item {
                         Box(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) { CircularProgressIndicator() }
                     }

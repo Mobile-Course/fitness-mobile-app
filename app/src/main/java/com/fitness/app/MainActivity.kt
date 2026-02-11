@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
                                         email = user.email,
                                         picture = user.picture,
                                         bio = user.description,
+                                        sportType = user.sportType,
                                         streak = user.streak
                                     )
                                     "main"

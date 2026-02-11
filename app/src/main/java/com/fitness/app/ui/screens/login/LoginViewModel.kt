@@ -20,6 +20,7 @@ import com.fitness.app.data.model.extractId
 import com.fitness.app.data.model.fullName
 import com.fitness.app.data.model.toUserEntity
 import com.fitness.app.data.repository.AuthRepository
+import com.fitness.app.data.repository.UserProfilesRepository
 
 data class LoginUiState(
     val email: String = "",
@@ -34,6 +35,7 @@ data class LoginUiState(
 class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
     private val gson = Gson()
     private val authRepository = AuthRepository()
+    private val userProfilesRepository = UserProfilesRepository()
 
     fun onEmailChanged(email: String) {
         updateState { it.copy(email = email, emailError = null, errorMessage = null) }
@@ -108,6 +110,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             val picture = userObj?.get("picture")?.asString
                             val description =
                                 userObj?.get("description")?.asString
+                            val sportType = userObj?.get("sportType")?.asString
                             val cookieToken = NetworkConfig.getAuthCookieValue()
                             val resolvedToken = token ?: authHeader ?: cookieAuth ?: cookieToken
                             UserSession.setUser(
@@ -116,6 +119,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                 email = email,
                                 picture = picture,
                                 bio = description,
+                                sportType = sportType,
                                 accessToken = resolvedToken
                             )
                             UserSession.persistAccessToken(context, resolvedToken)
@@ -208,7 +212,8 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             profileResult.fold(
                 onSuccess = { profile ->
                     val entity = profile.toUserEntity()
-                    AppDatabase.getInstance(context).userDao().upsert(entity)
+                    val dao = AppDatabase.getInstance(context).userDao()
+                    dao.upsert(entity)
                     UserSession.setUser(
                         userId = profile.extractId(),
                         name = profile.fullName(),
@@ -216,8 +221,39 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         email = profile.email,
                         picture = profile.picture,
                         bio = profile.description,
+                        sportType = profile.sportType,
                         streak = profile.streak
                     )
+                    val userId = profile.extractId()
+                    if (!userId.isNullOrBlank()) {
+                        val extraResult = userProfilesRepository.getUserProfile(userId)
+                        extraResult.onSuccess { extra ->
+                            val updated =
+                                entity.copy(
+                                    profileSummaryText = extra.profileSummaryText,
+                                    lastWorkoutVolume = extra.profileSummaryJson?.lastWorkout?.volume,
+                                    lastWorkoutIntensity =
+                                        extra.profileSummaryJson?.lastWorkout?.intensity,
+                                    lastWorkoutFocusPoints =
+                                        extra.profileSummaryJson?.lastWorkout?.focusPoints
+                                            ?.joinToString(","),
+                                    lastWorkoutCaloriesBurned =
+                                        extra.profileSummaryJson?.lastWorkout?.caloriesBurned,
+                                    lastWorkoutDuration =
+                                        extra.profileSummaryJson?.lastWorkout?.duration,
+                                    updateCount = extra.profileSummaryJson?.updateCount,
+                                    currentWeight = extra.currentWeight,
+                                    age = extra.age,
+                                    sex = extra.sex,
+                                    bodyFatPercentage = extra.bodyFatPercentage,
+                                    oneRmSquat = extra.oneRm?.squat,
+                                    oneRmBench = extra.oneRm?.bench,
+                                    oneRmDeadlift = extra.oneRm?.deadlift,
+                                    workoutsPerWeek = extra.workoutsPerWeek
+                                )
+                            dao.upsert(updated)
+                        }
+                    }
                 },
                 onFailure = { error ->
                     android.util.Log.e(

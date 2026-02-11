@@ -23,6 +23,9 @@ object UserSession {
     private val _bio = MutableStateFlow<String?>(null)
     val bio: StateFlow<String?> = _bio.asStateFlow()
 
+    private val _sportType = MutableStateFlow<String?>(null)
+    val sportType: StateFlow<String?> = _sportType.asStateFlow()
+
     private val _streak = MutableStateFlow<Int?>(null)
     val streak: StateFlow<Int?> = _streak.asStateFlow()
 
@@ -60,6 +63,7 @@ object UserSession {
         email: String? = null,
         picture: String? = null,
         bio: String? = null,
+        sportType: String? = null,
         streak: Int? = null,
         userId: String? = null,
         accessToken: String? = null
@@ -69,6 +73,7 @@ object UserSession {
         if (email != null) _email.value = email
         if (picture != null) _picture.value = picture
         if (bio != null) _bio.value = bio
+        if (sportType != null) _sportType.value = sportType
         if (streak != null) _streak.value = streak
         if (userId != null) _userId.value = userId
         if (accessToken != null) {
@@ -83,6 +88,7 @@ object UserSession {
         _email.value = null
         _picture.value = null
         _bio.value = null
+        _sportType.value = null
         _streak.value = null
         _userId.value = null
         _accessToken.value = null
