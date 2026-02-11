@@ -1,10 +1,16 @@
 package com.fitness.app.ui.screens.profile
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.fitness.app.auth.UserSession
+import com.fitness.app.data.local.AppDatabase
+import com.fitness.app.data.repository.AuthRepository
+import com.fitness.app.network.NetworkConfig
 import com.fitness.app.ui.base.BaseViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 data class UserProfile(
     val name: String = "User",
@@ -32,6 +38,8 @@ data class ProfileUiState(
 )
 
 class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
+    private val authRepository = AuthRepository()
+
     init {
         viewModelScope.launch {
             combine(
@@ -63,6 +71,23 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                     current.copy(profile = updatedProfile)
                 }
             }
+        }
+    }
+
+    fun logout(context: Context, onLoggedOut: () -> Unit) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                authRepository.logout()
+            }
+            withContext(Dispatchers.IO) {
+                AppDatabase.getInstance(context).userDao().clear()
+            }
+            UserSession.clear()
+            try {
+                NetworkConfig.cookieManager.cookieStore.removeAll()
+            } catch (_: Exception) {
+            }
+            onLoggedOut()
         }
     }
 }

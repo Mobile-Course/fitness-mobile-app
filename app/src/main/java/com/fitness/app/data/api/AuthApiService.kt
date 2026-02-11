@@ -12,4 +12,6 @@ interface AuthApiService {
     @POST("api/auth/login") suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     @GET("api/auth/profile") suspend fun getProfile(): Response<UserProfileDto>
+
+    @POST("api/auth/logout") suspend fun logout(): Response<Unit>
 }

@@ -14,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,10 +33,12 @@ import coil.request.ImageRequest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onNavigateToSettings: () -> Unit,
+    onLogout: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    var showSettingsMenu by remember { mutableStateOf(false) }
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
     val cardBg = Color.White
@@ -61,11 +66,29 @@ fun ProfileScreen(
                 )
             },
             actions = {
-                IconButton(onClick = onNavigateToSettings) {
+                IconButton(onClick = { showSettingsMenu = true }) {
                     Icon(
                         imageVector = Icons.Outlined.Settings,
                         contentDescription = "Settings",
                         tint = accentDark
+                    )
+                }
+                DropdownMenu(
+                    expanded = showSettingsMenu,
+                    onDismissRequest = { showSettingsMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Logout") },
+                        onClick = {
+                            showSettingsMenu = false
+                            viewModel.logout(context, onLogout)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = null
+                            )
+                        }
                     )
                 }
             },
@@ -79,9 +102,7 @@ fun ProfileScreen(
         // Profile Header Card
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(8.dp),
+                .fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = cardBg),
             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
@@ -123,14 +144,6 @@ fun ProfileScreen(
                                 )
                             )
                         }
-                        if (uiState.profile.email.isNotBlank()) {
-                            Text(
-                                text = uiState.profile.email,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = Color.Gray
-                                )
-                            )
-                        }
                         if (uiState.profile.bio.isNotBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -164,42 +177,33 @@ fun ProfileScreen(
                         fontWeight = FontWeight.Bold
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        iconResource = Icons.Default.EmojiEvents,
+                        value = uiState.profile.streak.toString(),
+                        label = "days",
+                        subLabel = "Streak",
+                        accentDark = accentDark
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        iconResource = Icons.Default.TrackChanges,
+                        value = uiState.profile.posts.toString(),
+                        label = "Posts",
+                        accentDark = accentDark
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Stats Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                iconResource = Icons.Default.Whatshot,
-                value = uiState.profile.workouts.toString(),
-                label = "Workouts",
-                accentDark = accentDark
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                iconResource = Icons.Default.EmojiEvents,
-                value = uiState.profile.streak.toString(),
-                label = "days",
-                subLabel = "Streak",
-                accentDark = accentDark
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                iconResource = Icons.Default.TrackChanges,
-                value = uiState.profile.posts.toString(),
-                label = "Posts",
-                accentDark = accentDark
-            )
-        }
-
         Spacer(modifier = Modifier.height(24.dp))
 
         // Achievements Section

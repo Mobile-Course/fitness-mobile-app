@@ -41,8 +41,10 @@ fun NavGraph(navController: NavHostController, startDestination: String) {
         }
         composable("main") {
             MainScreen(
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Preferences.route)
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }

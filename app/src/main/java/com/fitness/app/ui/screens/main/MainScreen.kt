@@ -60,7 +60,7 @@ sealed class BottomNavItem(
 }
 
 @Composable
-fun MainScreen(onNavigateToSettings: () -> Unit) {
+fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val items = listOf(
         BottomNavItem.Feed,
@@ -133,7 +133,7 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                 AITipsScreen()
             }
             composable(Screen.Profile.route) {
-                ProfileScreen(onNavigateToSettings = onNavigateToSettings)
+                ProfileScreen(onLogout = onLogout)
             }
         }
     }
