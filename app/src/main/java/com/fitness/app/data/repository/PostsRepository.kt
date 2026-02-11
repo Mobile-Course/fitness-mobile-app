@@ -22,6 +22,19 @@ class PostsRepository {
         }
     }
 
+    suspend fun getPostsByAuthor(authorId: String, page: Int, limit: Int): Result<PaginationResponse<Post>> {
+        return try {
+            val response = apiService.getPostsByAuthor(authorId, page, limit)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error fetching posts: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun likeOrUnlikePost(postId: String): Result<Post> {
         return try {
             val response = apiService.likeOrUnlikePost(LikePostRequest(postId))

@@ -15,6 +15,14 @@ data class UserProfileDto(
     @SerializedName("description") val description: String? = null
 )
 
+fun UserProfileDto.extractId(): String? {
+    return when (id) {
+        is String -> id
+        is Map<*, *> -> id["\$oid"] as? String
+        else -> null
+    }
+}
+
 fun UserProfileDto.toUserEntity(): UserEntity {
     val key =
         listOfNotNull(username, email)
@@ -22,6 +30,7 @@ fun UserProfileDto.toUserEntity(): UserEntity {
             ?: "user"
     return UserEntity(
         username = key,
+        userId = extractId(),
         name = name,
         lastName = lastName,
         picture = picture,

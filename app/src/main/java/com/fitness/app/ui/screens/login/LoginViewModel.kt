@@ -16,6 +16,7 @@ import android.util.Base64
 import org.json.JSONObject
 import android.content.Context
 import com.fitness.app.data.local.AppDatabase
+import com.fitness.app.data.model.extractId
 import com.fitness.app.data.model.fullName
 import com.fitness.app.data.model.toUserEntity
 import com.fitness.app.data.repository.AuthRepository
@@ -206,6 +207,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                     val entity = profile.toUserEntity()
                     AppDatabase.getInstance(context).userDao().upsert(entity)
                     UserSession.setUser(
+                        userId = profile.extractId(),
                         name = profile.fullName(),
                         username = entity.username,
                         email = profile.email,

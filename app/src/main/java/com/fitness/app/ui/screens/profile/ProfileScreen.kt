@@ -3,20 +3,24 @@ package com.fitness.app.ui.screens.profile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,10 +29,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.fitness.app.ui.components.PostItem
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,11 +56,34 @@ fun ProfileScreen(
         uiState.profile.picture?.takeIf { it.isNotBlank() }
             ?: "https://ui-avatars.com/api/?name=${avatarFallbackSeed}&background=343E4E&color=ffffff"
 
+    val posts by viewModel.posts.collectAsState()
+    val isPostsLoading by viewModel.isPostsLoading.collectAsState()
+    val postsError by viewModel.postsError.collectAsState()
+    val likedPostIds by viewModel.likedPostIds.collectAsState()
+    val currentUsername by viewModel.currentUsername.collectAsState()
+    val listState = rememberLazyListState()
+
+    val isScrollToEnd by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) return@derivedStateOf false
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisibleItemIndex >= totalItems - 2
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { isScrollToEnd to isPostsLoading }
+            .distinctUntilChanged()
+            .filter { (scrollToEnd, loading) -> scrollToEnd && !loading }
+            .collect { viewModel.loadPosts() }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(bgColor)
-            .verticalScroll(rememberScrollState())
     ) {
         // Top Bar
         TopAppBar(
@@ -97,147 +128,163 @@ fun ProfileScreen(
 
         Divider(color = Color(0xFFE2E8F0))
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Profile Header Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = cardBg),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+            item {
+                // Profile Header Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = cardBg),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    AsyncImage(
-                        model =
-                            ImageRequest.Builder(LocalContext.current)
-                                .data(avatarUrl)
-                                .build(),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.size(80.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-
-                    Spacer(modifier = Modifier.width(20.dp))
-
-                    Column {
-                        Text(
-                            text = uiState.profile.name,
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = accentDark
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            AsyncImage(
+                                model =
+                                    ImageRequest.Builder(LocalContext.current)
+                                        .data(avatarUrl)
+                                        .build(),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.size(80.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
                             )
-                        )
-                        val username =
-                            uiState.profile.username.ifBlank {
-                                uiState.profile.email.substringBefore("@")
-                            }
-                        if (username.isNotBlank()) {
-                            Text(
-                                text = "@${username}",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = Color.Gray
+                            Spacer(modifier = Modifier.width(50.dp))
+                            StatCard(
+                                value = uiState.profile.streak.toString(),
+                                label = "Streak",
+                                accentDark = accentDark
                                 )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            StatCard(
+                                value = uiState.profile.posts.toString(),
+                                label = "Posts",
+                                accentDark = accentDark
                             )
                         }
-                        if (uiState.profile.bio.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = uiState.profile.bio,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = accentDark
+                        
+                        Spacer(modifier = Modifier.width(20.dp))
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = uiState.profile.name,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = accentDark
+                                    )
                                 )
+                                val username =
+                                    uiState.profile.username.ifBlank {
+                                        uiState.profile.email.substringBefore("@")
+                                    }
+                                if (username.isNotBlank()) {
+                                    Text(
+                                        text = "@${username}",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = Color.Gray
+                                        )
+                                    )
+                                }
+                                if (uiState.profile.bio.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = uiState.profile.bio,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = accentDark
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = { /* Edit profile */ },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(4.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = accentDark
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Edit Profile",
+                                color = accentDark,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                OutlinedButton(
-                    onClick = { /* Edit profile */ },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(4.dp),
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = accentDark
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+            if (posts.isEmpty() && !isPostsLoading && postsError == null) {
+                item {
                     Text(
-                        text = "Edit Profile",
-                        color = accentDark,
-                        fontWeight = FontWeight.Bold
+                        text = "No posts yet.",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = accentDark,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                }
+            } else {
+                items(posts, key = { it.id }) { post ->
+                    val isLikedByUser =
+                        currentUsername != null &&
+                            post.likes?.any { it.username == currentUsername } == true
+                    PostItem(
+                        post = post,
+                        isLiked = isLikedByUser || likedPostIds.contains(post.id),
+                        onLikeClick = { viewModel.toggleLike(post.id) },
+                        onAddComment = { content -> viewModel.addComment(post.id, content) }
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                if (isPostsLoading) {
+                    item {
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator() }
+                    }
+                }
+            }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        iconResource = Icons.Default.EmojiEvents,
-                        value = uiState.profile.streak.toString(),
-                        label = "days",
-                        subLabel = "Streak",
-                        accentDark = accentDark
-                    )
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        iconResource = Icons.Default.TrackChanges,
-                        value = uiState.profile.posts.toString(),
-                        label = "Posts",
-                        accentDark = accentDark
+            if (postsError != null && posts.isEmpty()) {
+                item {
+                    Text(
+                        text = postsError ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Achievements Section
-        Text(
-            text = "Achievements",
-            modifier = Modifier.padding(horizontal = 16.dp),
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold,
-                color = accentDark
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        uiState.achievements.forEach { achievement ->
-            AchievementItem(achievement, accentDark)
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
 fun StatCard(
     modifier: Modifier = Modifier,
-    iconResource: ImageVector,
     value: String,
     label: String,
-    subLabel: String? = null,
     accentDark: Color
 ) {
     Card(
-        modifier = modifier.height(140.dp),
+        modifier = modifier.size(60.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -247,13 +294,6 @@ fun StatCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = iconResource,
-                contentDescription = null,
-                tint = accentDark,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -263,66 +303,11 @@ fun StatCard(
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium.copy(
+                style = MaterialTheme.typography.labelSmall.copy(
                     color = accentDark,
                     fontWeight = FontWeight.Bold
                 )
             )
-            if (subLabel != null) {
-                Text(
-                    text = subLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = Color.Gray
-                    )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun AchievementItem(achievement: Achievement, accentDark: Color) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                color = Color(0xFFF0F4F8)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        tint = Color.Gray
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = achievement.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                )
-                Text(
-                    text = achievement.description,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = Color.LightGray
-                    )
-                )
-            }
         }
     }
 }

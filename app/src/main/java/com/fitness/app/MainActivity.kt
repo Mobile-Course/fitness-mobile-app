@@ -49,6 +49,7 @@ class MainActivity : ComponentActivity() {
                                             .trim()
                                             .ifBlank { null },
                                         username = user.username,
+                                        userId = user.userId,
                                         email = user.email,
                                         picture = user.picture,
                                         bio = user.description
