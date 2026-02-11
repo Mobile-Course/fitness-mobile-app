@@ -16,12 +16,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +37,11 @@ fun ProfileScreen(
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
     val cardBg = Color.White
+    val avatarFallbackSeed =
+        uiState.profile.username.ifBlank { uiState.profile.name.ifBlank { "user" } }
+    val avatarUrl =
+        uiState.profile.picture?.takeIf { it.isNotBlank() }
+            ?: "https://ui-avatars.com/api/?name=${avatarFallbackSeed}&background=343E4E&color=ffffff"
 
     Column(
         modifier = Modifier
@@ -82,21 +91,15 @@ fun ProfileScreen(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar Placeholder
-                    Surface(
-                        modifier = Modifier.size(80.dp),
-                        shape = CircleShape,
-                        color = accentDark
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "G",
-                                color = Color.White,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    AsyncImage(
+                        model =
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(avatarUrl)
+                                .build(),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.size(80.dp).clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
 
                     Spacer(modifier = Modifier.width(20.dp))
 
@@ -108,12 +111,26 @@ fun ProfileScreen(
                                 color = accentDark
                             )
                         )
-                        Text(
-                            text = "@${uiState.profile.username}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color.Gray
+                        val username =
+                            uiState.profile.username.ifBlank {
+                                uiState.profile.email.substringBefore("@")
+                            }
+                        if (username.isNotBlank()) {
+                            Text(
+                                text = "@${username}",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = Color.Gray
+                                )
                             )
-                        )
+                        }
+                        if (uiState.profile.email.isNotBlank()) {
+                            Text(
+                                text = uiState.profile.email,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = Color.Gray
+                                )
+                            )
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = uiState.profile.bio,

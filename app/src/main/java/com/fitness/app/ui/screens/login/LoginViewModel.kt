@@ -89,13 +89,26 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                 userObj?.get("username")?.asString
                                     ?: userObj?.get("email")?.asString
                                     ?: uiState.value.email
+                            val name = userObj?.get("name")?.asString
+                            val lastName = userObj?.get("lastName")?.asString
+                            val fullName =
+                                listOfNotNull(name, lastName)
+                                    .map { it.trim() }
+                                    .filter { it.isNotEmpty() }
+                                    .joinToString(" ")
+                                    .ifBlank { null }
+                            val email = userObj?.get("email")?.asString ?: uiState.value.email
+                            val picture = userObj?.get("picture")?.asString
                             val cookieToken = NetworkConfig.getAuthCookieValue()
                             UserSession.setUser(
+                                name = fullName,
                                 username = username,
+                                email = email,
+                                picture = picture,
                                 accessToken = token ?: authHeader ?: cookieAuth ?: cookieToken
                             )
                         } else {
-                            UserSession.setUser(username = uiState.value.email)
+                            UserSession.setUser(username = uiState.value.email, email = uiState.value.email)
                         }
                         android.util.Log.d(
                             "LoginViewModel",
@@ -139,7 +152,13 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             "Google tokens received. accessTokenLength=${accessToken.length}"
         )
         val username = extractUsernameFromJwt(accessToken)
-        UserSession.setUser(userId = userId, username = username, accessToken = accessToken)
+        val email = username?.takeIf { it.contains("@") }
+        UserSession.setUser(
+            userId = userId,
+            username = username,
+            email = email,
+            accessToken = accessToken
+        )
         updateState { it.copy(isLoading = false, errorMessage = null) }
         onSuccess()
     }
