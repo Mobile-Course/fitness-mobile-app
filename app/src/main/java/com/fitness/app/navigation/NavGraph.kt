@@ -10,10 +10,10 @@ import com.fitness.app.ui.screens.main.MainScreen
 // import com.fitness.app.ui.screens.preferences.PreferencesScreen
 
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun NavGraph(navController: NavHostController, startDestination: String) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = startDestination
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
