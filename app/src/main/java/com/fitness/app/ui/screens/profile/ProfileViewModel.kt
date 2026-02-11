@@ -104,6 +104,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 if (userId.isNullOrBlank()) return@collect
                 if (userId == currentAuthorId) return@collect
                 currentAuthorId = userId
+                refreshProfileStats(userId)
                 refreshPosts()
             }
         }
@@ -161,6 +162,27 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
         isLastPage = false
         _posts.value = emptyList()
         loadPosts()
+    }
+
+    private fun refreshProfileStats(authorId: String) {
+        viewModelScope.launch {
+            val profileResult = authRepository.getProfile()
+            profileResult
+                .onSuccess { profile ->
+                    val streak = profile.streak ?: 0
+                    updateState { current ->
+                        current.copy(profile = current.profile.copy(streak = streak))
+                    }
+                }
+
+            val postsResult = postsRepository.getAllPostsByAuthor(authorId)
+            postsResult
+                .onSuccess { list ->
+                    updateState { current ->
+                        current.copy(profile = current.profile.copy(posts = list.size))
+                    }
+                }
+        }
     }
 
     fun toggleLike(postId: String) {

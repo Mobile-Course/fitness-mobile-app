@@ -6,10 +6,10 @@
     <application
         android:name=".FitnessApp"
         android:allowBackup="true"
-        android:icon="@android:mipmap/sym_def_app_icon"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="Fitness App"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:roundIcon="@android:mipmap/sym_def_app_icon"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
