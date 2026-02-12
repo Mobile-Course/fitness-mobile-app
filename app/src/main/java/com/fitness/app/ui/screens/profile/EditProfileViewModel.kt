@@ -586,6 +586,9 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
         val payload =
             UserProfileSummaryRequest(
                 userId = userId,
+                profileSummaryJson = com.fitness.app.data.model.ProfileSummaryJson(),
+                profileSummaryText = "",
+                version = 1,
                 currentWeight = parseIntOrNull(state.currentWeight),
                 age = parseIntOrNull(state.age),
                 sex = state.sex.trim().lowercase().ifBlank { null },
