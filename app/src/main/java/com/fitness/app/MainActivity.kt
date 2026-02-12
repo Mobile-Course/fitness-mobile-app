@@ -45,10 +45,7 @@ class MainActivity : ComponentActivity() {
                                 if (user != null) {
                                     UserSession.restoreAccessToken(this@MainActivity)
                                     UserSession.setUser(
-                                        name = listOfNotNull(user.name, user.lastName)
-                                            .joinToString(" ")
-                                            .trim()
-                                            .ifBlank { null },
+                                        name = user.name,
                                         username = user.username,
                                         userId = user.userId,
                                         email = user.email,

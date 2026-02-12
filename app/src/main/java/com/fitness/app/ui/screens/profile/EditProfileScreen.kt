@@ -14,8 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -65,6 +65,7 @@ fun EditProfileScreen(
     viewModel: EditProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val fieldErrors = uiState.fieldErrors
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val bgColor = Color(0xFFF0F4F8)
@@ -129,6 +130,7 @@ fun EditProfileScreen(
                     ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            fun errorFor(field: String): String? = fieldErrors[field]
             val selectedUri =
                 uiState.imageUri?.let { Uri.parse(it) }
             val previewModel =
@@ -167,7 +169,12 @@ fun EditProfileScreen(
                 onValueChange = viewModel::onNameChanged,
                 label = { Text("Name") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                isError = errorFor("name") != null,
+                supportingText = {
+                    val error = errorFor("name")
+                    if (error != null) Text(error)
+                }
             )
             OutlinedTextField(
                 value = uiState.password,
@@ -175,7 +182,12 @@ fun EditProfileScreen(
                 label = { Text("Password") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                isError = errorFor("password") != null,
+                supportingText = {
+                    val error = errorFor("password")
+                    if (error != null) Text(error)
+                }
             )
             Box(
                 modifier = Modifier.fillMaxWidth()
@@ -190,11 +202,18 @@ fun EditProfileScreen(
                             .clickable { sportTypeExpanded = true },
                     readOnly = true,
                     singleLine = true,
+                    isError = errorFor("sportType") != null,
+                    supportingText = {
+                        val error = errorFor("sportType")
+                        if (error != null) Text(error)
+                    },
                     trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.ArrowDropDown,
-                            contentDescription = null
-                        )
+                        IconButton(onClick = { sportTypeExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null
+                            )
+                        }
                     }
                 )
                 DropdownMenu(
@@ -213,19 +232,29 @@ fun EditProfileScreen(
                 }
             }
             OutlinedTextField(
-                value = uiState.weeklyGoal,
-                onValueChange = viewModel::onWeeklyGoalChanged,
-                label = { Text("Weekly Goal") },
+                value = uiState.workoutsPerWeek,
+                onValueChange = viewModel::onWorkoutsPerWeekChanged,
+                label = { Text("Workouts Per Week") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = errorFor("workoutsPerWeek") != null,
+                supportingText = {
+                    val error = errorFor("workoutsPerWeek")
+                    if (error != null) Text(error)
+                }
             )
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = viewModel::onDescriptionChanged,
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 3
+                minLines = 3,
+                isError = errorFor("description") != null,
+                supportingText = {
+                    val error = errorFor("description")
+                    if (error != null) Text(error)
+                }
             )
 
             Text(
@@ -245,7 +274,12 @@ fun EditProfileScreen(
                     label = { Text("Age", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("age") != null,
+                    supportingText = {
+                        val error = errorFor("age")
+                        if (error != null) Text(error)
+                    }
                 )
                 OutlinedTextField(
                     value = uiState.height,
@@ -253,7 +287,12 @@ fun EditProfileScreen(
                     label = { Text("Height", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("height") != null,
+                    supportingText = {
+                        val error = errorFor("height")
+                        if (error != null) Text(error)
+                    }
                 )
                 OutlinedTextField(
                     value = uiState.currentWeight,
@@ -261,7 +300,12 @@ fun EditProfileScreen(
                     label = { Text("Weight", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("currentWeight") != null,
+                    supportingText = {
+                        val error = errorFor("currentWeight")
+                        if (error != null) Text(error)
+                    }
                 )
             }
 
@@ -275,16 +319,24 @@ fun EditProfileScreen(
                         value = uiState.sex,
                         onValueChange = { },
                         label = { Text("Sex", style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { sexExpanded = true },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { sexExpanded = true },
                         readOnly = true,
                         singleLine = true,
+                        isError = errorFor("sex") != null,
+                        supportingText = {
+                            val error = errorFor("sex")
+                            if (error != null) Text(error)
+                        },
                         trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = null
-                            )
+                            IconButton(onClick = { sexExpanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = null
+                                )
+                            }
                         }
                     )
                     DropdownMenu(
@@ -308,7 +360,12 @@ fun EditProfileScreen(
                     label = { Text("Fat %", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("bodyFatPercentage") != null,
+                    supportingText = {
+                        val error = errorFor("bodyFatPercentage")
+                        if (error != null) Text(error)
+                    }
                 )
                 OutlinedTextField(
                     value = uiState.vo2max,
@@ -316,7 +373,12 @@ fun EditProfileScreen(
                     label = { Text("VO2max", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("vo2max") != null,
+                    supportingText = {
+                        val error = errorFor("vo2max")
+                        if (error != null) Text(error)
+                    }
                 )
             }
 
@@ -337,7 +399,12 @@ fun EditProfileScreen(
                     label = { Text("Squat", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("oneRmSquat") != null,
+                    supportingText = {
+                        val error = errorFor("oneRmSquat")
+                        if (error != null) Text(error)
+                    }
                 )
                 OutlinedTextField(
                     value = uiState.oneRmBench,
@@ -345,7 +412,12 @@ fun EditProfileScreen(
                     label = { Text("Bench", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("oneRmBench") != null,
+                    supportingText = {
+                        val error = errorFor("oneRmBench")
+                        if (error != null) Text(error)
+                    }
                 )
                 OutlinedTextField(
                     value = uiState.oneRmDeadlift,
@@ -353,7 +425,12 @@ fun EditProfileScreen(
                     label = { Text("Deadlift", style = MaterialTheme.typography.labelSmall) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = errorFor("oneRmDeadlift") != null,
+                    supportingText = {
+                        val error = errorFor("oneRmDeadlift")
+                        if (error != null) Text(error)
+                    }
                 )
             }
 

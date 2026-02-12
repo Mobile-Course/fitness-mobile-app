@@ -13,7 +13,9 @@ class UserProfilesRepository {
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                Result.failure(Exception("User profile fetch failed: ${response.message()}"))
+                val details = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                val suffix = details?.let { " - $it" } ?: ""
+                Result.failure(Exception("User profile fetch failed: ${response.message()}$suffix"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -26,7 +28,9 @@ class UserProfilesRepository {
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("User profile update failed: ${response.message()}"))
+                val details = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                val suffix = details?.let { " - $it" } ?: ""
+                Result.failure(Exception("User profile update failed: ${response.message()}$suffix"))
             }
         } catch (e: Exception) {
             Result.failure(e)

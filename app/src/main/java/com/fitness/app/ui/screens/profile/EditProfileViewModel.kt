@@ -5,12 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.fitness.app.auth.UserSession
 import com.fitness.app.data.local.AppDatabase
-import com.fitness.app.data.model.UserProfileSummaryRequest
-import com.fitness.app.data.model.ProfileSummaryJson
-import com.fitness.app.data.model.LastWorkout
 import com.fitness.app.data.model.OneRm
+import com.fitness.app.data.model.UserProfileSummaryRequest
 import com.fitness.app.data.model.extractId
-import com.fitness.app.data.model.fullName
 import com.fitness.app.data.model.toUserEntity
 import com.fitness.app.data.repository.AuthRepository
 import com.fitness.app.data.repository.UserProfilesRepository
@@ -50,12 +47,60 @@ data class EditProfileUiState(
     val height: String = "",
     val vo2max: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val fieldErrors: Map<String, String> = emptyMap()
 )
 
 class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiState()) {
     private val authRepository = AuthRepository()
     private val userProfilesRepository = UserProfilesRepository()
+
+    companion object {
+        private const val FIELD_NAME = "name"
+        private const val FIELD_LAST_NAME = "lastName"
+        private const val FIELD_PASSWORD = "password"
+        private const val FIELD_SPORT_TYPE = "sportType"
+        private const val FIELD_DESCRIPTION = "description"
+        private const val FIELD_WORKOUTS_PER_WEEK = "workoutsPerWeek"
+        private const val FIELD_AGE = "age"
+        private const val FIELD_HEIGHT = "height"
+        private const val FIELD_WEIGHT = "currentWeight"
+        private const val FIELD_SEX = "sex"
+        private const val FIELD_BODY_FAT = "bodyFatPercentage"
+        private const val FIELD_VO2MAX = "vo2max"
+        private const val FIELD_SQUAT = "oneRmSquat"
+        private const val FIELD_BENCH = "oneRmBench"
+        private const val FIELD_DEADLIFT = "oneRmDeadlift"
+
+        private val SPORT_TYPES =
+            setOf(
+                "Athlete",
+                "Runner",
+                "Cyclist",
+                "Swimmer",
+                "Weightlifter",
+                "Bodybuilder",
+                "CrossFit",
+                "Yoga Practitioner",
+                "Martial Artist",
+                "Climber",
+                "Dancer",
+                "FitnessEnthusiast"
+            )
+    }
+
+    private fun updateField(
+        field: String,
+        reducer: (EditProfileUiState) -> EditProfileUiState
+    ) {
+        updateState { current ->
+            val next = reducer(current)
+            next.copy(
+                errorMessage = null,
+                fieldErrors = current.fieldErrors - field
+            )
+        }
+    }
 
     private fun loadLocalProfile(context: Context) {
         viewModelScope.launch {
@@ -201,15 +246,15 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
     }
 
     fun onPasswordChanged(value: String) {
-        updateState { it.copy(password = value, errorMessage = null) }
+        updateField(FIELD_PASSWORD) { it.copy(password = value) }
     }
 
     fun onNameChanged(value: String) {
-        updateState { it.copy(name = value, errorMessage = null) }
+        updateField(FIELD_NAME) { it.copy(name = value) }
     }
 
     fun onLastNameChanged(value: String) {
-        updateState { it.copy(lastName = value, errorMessage = null) }
+        updateField(FIELD_LAST_NAME) { it.copy(lastName = value) }
     }
 
     fun onPictureChanged(value: String) {
@@ -223,7 +268,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
     }
 
     fun onSportTypeChanged(value: String) {
-        updateState { it.copy(sportType = value, errorMessage = null) }
+        updateField(FIELD_SPORT_TYPE) { it.copy(sportType = value) }
     }
 
     fun onWeeklyGoalChanged(value: String) {
@@ -231,7 +276,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
     }
 
     fun onDescriptionChanged(value: String) {
-        updateState { it.copy(description = value, errorMessage = null) }
+        updateField(FIELD_DESCRIPTION) { it.copy(description = value) }
     }
 
     fun onProfileSummaryTextChanged(value: String) {
@@ -263,46 +308,57 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
     }
 
     fun onCurrentWeightChanged(value: String) {
-        updateState { it.copy(currentWeight = value, errorMessage = null) }
+        updateField(FIELD_WEIGHT) { it.copy(currentWeight = value) }
     }
 
     fun onAgeChanged(value: String) {
-        updateState { it.copy(age = value, errorMessage = null) }
+        updateField(FIELD_AGE) { it.copy(age = value) }
     }
 
     fun onSexChanged(value: String) {
-        updateState { it.copy(sex = value, errorMessage = null) }
+        updateField(FIELD_SEX) { it.copy(sex = value) }
     }
 
     fun onBodyFatPercentageChanged(value: String) {
-        updateState { it.copy(bodyFatPercentage = value, errorMessage = null) }
+        updateField(FIELD_BODY_FAT) { it.copy(bodyFatPercentage = value) }
     }
 
     fun onOneRmSquatChanged(value: String) {
-        updateState { it.copy(oneRmSquat = value, errorMessage = null) }
+        updateField(FIELD_SQUAT) { it.copy(oneRmSquat = value) }
     }
 
     fun onOneRmBenchChanged(value: String) {
-        updateState { it.copy(oneRmBench = value, errorMessage = null) }
+        updateField(FIELD_BENCH) { it.copy(oneRmBench = value) }
     }
 
     fun onOneRmDeadliftChanged(value: String) {
-        updateState { it.copy(oneRmDeadlift = value, errorMessage = null) }
+        updateField(FIELD_DEADLIFT) { it.copy(oneRmDeadlift = value) }
     }
 
     fun onWorkoutsPerWeekChanged(value: String) {
-        updateState { it.copy(workoutsPerWeek = value, errorMessage = null) }
+        updateField(FIELD_WORKOUTS_PER_WEEK) { it.copy(workoutsPerWeek = value) }
     }
 
     fun onHeightChanged(value: String) {
-        updateState { it.copy(height = value, errorMessage = null) }
+        updateField(FIELD_HEIGHT) { it.copy(height = value) }
     }
 
     fun onVo2maxChanged(value: String) {
-        updateState { it.copy(vo2max = value, errorMessage = null) }
+        updateField(FIELD_VO2MAX) { it.copy(vo2max = value) }
     }
 
     fun submit(context: Context, onSuccess: () -> Unit) {
+        val validationErrors = validateForSubmit(uiState.value)
+        if (validationErrors.isNotEmpty()) {
+            updateState {
+                it.copy(
+                    fieldErrors = validationErrors,
+                    errorMessage = "Please fix the highlighted fields"
+                )
+            }
+            return
+        }
+
         val weeklyGoalText = uiState.value.weeklyGoal.trim()
         val weeklyGoal =
             if (weeklyGoalText.isBlank()) null
@@ -313,31 +369,43 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
             return
         }
 
-        updateState { it.copy(isLoading = true, errorMessage = null) }
+        updateState { it.copy(isLoading = true, errorMessage = null, fieldErrors = emptyMap()) }
         viewModelScope.launch {
             val imageUri = uiState.value.imageUri?.let { Uri.parse(it) }
+            val hasAuthChanges =
+                imageUri != null ||
+                    uiState.value.password.isNotBlank() ||
+                    uiState.value.name.isNotBlank() ||
+                    uiState.value.lastName.isNotBlank() ||
+                    uiState.value.sportType.isNotBlank() ||
+                    uiState.value.description.isNotBlank() ||
+                    weeklyGoal != null
             val result =
                 withContext(Dispatchers.IO) {
-                    val filePart =
-                        if (imageUri != null) {
-                            createFilePart(context, imageUri)
-                        } else {
-                            null
+                    if (hasAuthChanges) {
+                        val filePart =
+                            if (imageUri != null) {
+                                createFilePart(context, imageUri)
+                            } else {
+                                null
+                            }
+                        if (imageUri != null && filePart == null) {
+                            return@withContext Result.failure(
+                                Exception("Unable to read selected image")
+                            )
                         }
-                    if (imageUri != null && filePart == null) {
-                        return@withContext Result.failure(
-                            Exception("Unable to read selected image")
+                        authRepository.updateProfileWithImage(
+                            file = filePart,
+                            password = textPart(uiState.value.password),
+                            name = textPart(uiState.value.name),
+                            lastName = textPart(uiState.value.lastName),
+                            sportType = textPart(uiState.value.sportType),
+                            description = textPart(uiState.value.description),
+                            weeklyGoal = weeklyGoal?.let { goal -> textPart(goal.toString()) }
                         )
+                    } else {
+                        authRepository.getProfile()
                     }
-                    authRepository.updateProfileWithImage(
-                        file = filePart,
-                        password = textPart(uiState.value.password),
-                        name = textPart(uiState.value.name),
-                        lastName = textPart(uiState.value.lastName),
-                        sportType = textPart(uiState.value.sportType),
-                        description = textPart(uiState.value.description),
-                        weeklyGoal = weeklyGoal?.let { goal -> textPart(goal.toString()) }
-                    )
                 }
 
             result.fold(
@@ -371,23 +439,18 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
 
                     withContext(Dispatchers.IO) {
                         val dao = AppDatabase.getInstance(context).userDao()
+                        val previous = dao.getUser()
                         val entity = profile.toUserEntity()
                         val updated =
                             if (extraPayload != null) {
                                 entity.copy(
-                                    profileSummaryText = extraPayload.profileSummaryText,
-                                    lastWorkoutVolume =
-                                        extraPayload.profileSummaryJson?.lastWorkout?.volume,
-                                    lastWorkoutIntensity =
-                                        extraPayload.profileSummaryJson?.lastWorkout?.intensity,
-                                    lastWorkoutFocusPoints =
-                                        extraPayload.profileSummaryJson?.lastWorkout?.focusPoints
-                                            ?.joinToString(","),
-                                    lastWorkoutCaloriesBurned =
-                                        extraPayload.profileSummaryJson?.lastWorkout?.caloriesBurned,
-                                    lastWorkoutDuration =
-                                        extraPayload.profileSummaryJson?.lastWorkout?.duration,
-                                    updateCount = extraPayload.profileSummaryJson?.updateCount,
+                                    profileSummaryText = previous?.profileSummaryText,
+                                    lastWorkoutVolume = previous?.lastWorkoutVolume,
+                                    lastWorkoutIntensity = previous?.lastWorkoutIntensity,
+                                    lastWorkoutFocusPoints = previous?.lastWorkoutFocusPoints,
+                                    lastWorkoutCaloriesBurned = previous?.lastWorkoutCaloriesBurned,
+                                    lastWorkoutDuration = previous?.lastWorkoutDuration,
+                                    updateCount = previous?.updateCount,
                                     currentWeight = extraPayload.currentWeight,
                                     age = extraPayload.age,
                                     sex = extraPayload.sex,
@@ -405,7 +468,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
                         dao.upsert(updated)
                         UserSession.setUser(
                             userId = profile.extractId(),
-                            name = profile.fullName(),
+                            name = profile.name,
                             username = entity.username,
                             email = profile.email,
                             picture = profile.picture,
@@ -440,40 +503,76 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
         return trimmed.toIntOrNull()
     }
 
-    private fun parseFocusPoints(value: String): List<String>? {
-        val parts =
-            value.split(",")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-        return parts.takeIf { it.isNotEmpty() }
+    private fun parseOptionalInt(
+        value: String,
+        field: String,
+        label: String,
+        min: Int,
+        max: Int,
+        errors: MutableMap<String, String>
+    ): Int? {
+        val trimmed = value.trim()
+        if (trimmed.isBlank()) return null
+        val parsed = trimmed.toIntOrNull()
+        if (parsed == null) {
+            errors[field] = "$label must be a whole number"
+            return null
+        }
+        if (parsed < min || parsed > max) {
+            errors[field] = "$label must be between $min and $max"
+            return null
+        }
+        return parsed
+    }
+
+    private fun validateForSubmit(state: EditProfileUiState): Map<String, String> {
+        val errors = mutableMapOf<String, String>()
+
+        val name = state.name.trim()
+        if (name.isNotEmpty() && !Regex("^[A-Za-z .'-]{2,40}$").matches(name)) {
+            errors[FIELD_NAME] = "Name must be 2-40 letters and valid separators"
+        }
+
+        val lastName = state.lastName.trim()
+        if (lastName.isNotEmpty() && !Regex("^[A-Za-z .'-]{2,40}$").matches(lastName)) {
+            errors[FIELD_LAST_NAME] = "Last name must be 2-40 letters and valid separators"
+        }
+
+        val password = state.password.trim()
+        if (password.isNotEmpty() && password.length < 6) {
+            errors[FIELD_PASSWORD] = "Password must be at least 6 characters"
+        }
+
+        val sportType = state.sportType.trim()
+        if (sportType.isNotEmpty() && SPORT_TYPES.none { it.equals(sportType, ignoreCase = true) }) {
+            errors[FIELD_SPORT_TYPE] = "Select a valid sport type"
+        }
+
+        if (state.description.length > 500) {
+            errors[FIELD_DESCRIPTION] = "Description cannot exceed 500 characters"
+        }
+
+        parseOptionalInt(state.workoutsPerWeek, FIELD_WORKOUTS_PER_WEEK, "Workouts per week", 0, 14, errors)
+        parseOptionalInt(state.age, FIELD_AGE, "Age", 10, 120, errors)
+        parseOptionalInt(state.height, FIELD_HEIGHT, "Height", 50, 260, errors)
+        parseOptionalInt(state.currentWeight, FIELD_WEIGHT, "Weight", 20, 400, errors)
+        parseOptionalInt(state.bodyFatPercentage, FIELD_BODY_FAT, "Body fat", 1, 70, errors)
+        parseOptionalInt(state.vo2max, FIELD_VO2MAX, "VO2 max", 10, 100, errors)
+        parseOptionalInt(state.oneRmSquat, FIELD_SQUAT, "Squat 1RM", 1, 600, errors)
+        parseOptionalInt(state.oneRmBench, FIELD_BENCH, "Bench 1RM", 1, 500, errors)
+        parseOptionalInt(state.oneRmDeadlift, FIELD_DEADLIFT, "Deadlift 1RM", 1, 700, errors)
+
+        val sex = state.sex.trim()
+        if (sex.isNotEmpty() && sex.lowercase() !in setOf("male", "female", "other")) {
+            errors[FIELD_SEX] = "Sex must be Male, Female, or Other"
+        }
+
+        return errors
     }
 
     private fun buildUserProfileSummaryPayload(userId: String?): UserProfileSummaryRequest? {
         if (userId.isNullOrBlank()) return null
         val state = uiState.value
-
-        val lastWorkout =
-            LastWorkout(
-                volume = parseIntOrNull(state.lastWorkoutVolume),
-                intensity = state.lastWorkoutIntensity.trim().ifBlank { null },
-                focusPoints = parseFocusPoints(state.lastWorkoutFocusPoints),
-                caloriesBurned = parseIntOrNull(state.lastWorkoutCaloriesBurned),
-                duration = parseIntOrNull(state.lastWorkoutDuration)
-            ).takeIf { lw ->
-                lw.volume != null ||
-                    !lw.intensity.isNullOrBlank() ||
-                    !lw.focusPoints.isNullOrEmpty() ||
-                    lw.caloriesBurned != null ||
-                    lw.duration != null
-            }
-
-        val summaryJson =
-            ProfileSummaryJson(
-                lastWorkout = lastWorkout,
-                updateCount = parseIntOrNull(state.updateCount)
-            ).takeIf { sj ->
-                sj.lastWorkout != null || sj.updateCount != null
-            }
 
         val oneRm =
             OneRm(
@@ -487,11 +586,9 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
         val payload =
             UserProfileSummaryRequest(
                 userId = userId,
-                profileSummaryText = state.profileSummaryText.trim().ifBlank { null },
-                profileSummaryJson = summaryJson,
                 currentWeight = parseIntOrNull(state.currentWeight),
                 age = parseIntOrNull(state.age),
-                sex = state.sex.trim().ifBlank { null },
+                sex = state.sex.trim().lowercase().ifBlank { null },
                 bodyFatPercentage = parseIntOrNull(state.bodyFatPercentage),
                 oneRm = oneRm,
                 workoutsPerWeek = parseIntOrNull(state.workoutsPerWeek),
@@ -500,9 +597,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
             )
 
         val hasAny =
-            payload.profileSummaryText != null ||
-                payload.profileSummaryJson != null ||
-                payload.currentWeight != null ||
+            payload.currentWeight != null ||
                 payload.age != null ||
                 payload.sex != null ||
                 payload.bodyFatPercentage != null ||
@@ -516,14 +611,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
 
     private fun hasExtraProfileFields(): Boolean {
         val state = uiState.value
-        return state.profileSummaryText.isNotBlank() ||
-            state.lastWorkoutVolume.isNotBlank() ||
-            state.lastWorkoutIntensity.isNotBlank() ||
-            state.lastWorkoutFocusPoints.isNotBlank() ||
-            state.lastWorkoutCaloriesBurned.isNotBlank() ||
-            state.lastWorkoutDuration.isNotBlank() ||
-            state.updateCount.isNotBlank() ||
-            state.currentWeight.isNotBlank() ||
+        return state.currentWeight.isNotBlank() ||
             state.age.isNotBlank() ||
             state.sex.isNotBlank() ||
             state.bodyFatPercentage.isNotBlank() ||

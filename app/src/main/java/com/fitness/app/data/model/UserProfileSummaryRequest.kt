@@ -2,8 +2,6 @@ package com.fitness.app.data.model
 
 data class UserProfileSummaryRequest(
     val userId: String,
-    val profileSummaryText: String? = null,
-    val profileSummaryJson: ProfileSummaryJson? = null,
     val currentWeight: Int? = null,
     val age: Int? = null,
     val sex: String? = null,

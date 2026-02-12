@@ -17,7 +17,6 @@ import org.json.JSONObject
 import android.content.Context
 import com.fitness.app.data.local.AppDatabase
 import com.fitness.app.data.model.extractId
-import com.fitness.app.data.model.fullName
 import com.fitness.app.data.model.toUserEntity
 import com.fitness.app.data.repository.AuthRepository
 import com.fitness.app.data.repository.UserProfilesRepository
@@ -99,13 +98,6 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                     ?: userObj?.get("email")?.asString
                                     ?: uiState.value.email
                             val name = userObj?.get("name")?.asString
-                            val lastName = userObj?.get("lastName")?.asString
-                            val fullName =
-                                listOfNotNull(name, lastName)
-                                    .map { it.trim() }
-                                    .filter { it.isNotEmpty() }
-                                    .joinToString(" ")
-                                    .ifBlank { null }
                             val email = userObj?.get("email")?.asString ?: uiState.value.email
                             val picture = userObj?.get("picture")?.asString
                             val description =
@@ -114,7 +106,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             val cookieToken = NetworkConfig.getAuthCookieValue()
                             val resolvedToken = token ?: authHeader ?: cookieAuth ?: cookieToken
                             UserSession.setUser(
-                                name = fullName,
+                                name = name,
                                 username = username,
                                 email = email,
                                 picture = picture,
@@ -216,7 +208,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                     dao.upsert(entity)
                     UserSession.setUser(
                         userId = profile.extractId(),
-                        name = profile.fullName(),
+                        name = profile.name,
                         username = entity.username,
                         email = profile.email,
                         picture = profile.picture,
@@ -230,18 +222,6 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         extraResult.onSuccess { extra ->
                             val updated =
                                 entity.copy(
-                                    profileSummaryText = extra.profileSummaryText,
-                                    lastWorkoutVolume = extra.profileSummaryJson?.lastWorkout?.volume,
-                                    lastWorkoutIntensity =
-                                        extra.profileSummaryJson?.lastWorkout?.intensity,
-                                    lastWorkoutFocusPoints =
-                                        extra.profileSummaryJson?.lastWorkout?.focusPoints
-                                            ?.joinToString(","),
-                                    lastWorkoutCaloriesBurned =
-                                        extra.profileSummaryJson?.lastWorkout?.caloriesBurned,
-                                    lastWorkoutDuration =
-                                        extra.profileSummaryJson?.lastWorkout?.duration,
-                                    updateCount = extra.profileSummaryJson?.updateCount,
                                     currentWeight = extra.currentWeight,
                                     age = extra.age,
                                     sex = extra.sex,

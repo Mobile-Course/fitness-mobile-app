@@ -7,11 +7,9 @@ data class UserPreferencesDto(
 )
 
 data class UpdateUserProfileRequest(
-    val password: String? = null,
-    val name: String? = null,
-    @SerializedName("lastName") val lastName: String? = null,
+    val username: String? = null,
+    val email: String? = null,
     val picture: String? = null,
-    @SerializedName("sportType") val sportType: String? = null,
-    val preferences: UserPreferencesDto? = null,
-    val description: String? = null
+    val description: String? = null,
+    @SerializedName("sportType") val sportType: String? = null
 )
