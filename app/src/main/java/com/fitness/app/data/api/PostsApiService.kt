@@ -19,6 +19,18 @@ interface PostsApiService {
             @Query("limit") limit: Int
     ): Response<PaginationResponse<Post>>
 
+    @GET("api/posts/author/{authorId}")
+    suspend fun getPostsByAuthor(
+            @Path("authorId") authorId: String,
+            @Query("page") page: Int,
+            @Query("limit") limit: Int
+    ): Response<PaginationResponse<Post>>
+
+    @GET("api/posts/author/{authorId}")
+    suspend fun getAllPostsByAuthor(
+            @Path("authorId") authorId: String
+    ): Response<PaginationResponse<Post>>
+
     @PUT("api/posts/like")
     suspend fun likeOrUnlikePost(@Body body: LikePostRequest): Response<Post>
 

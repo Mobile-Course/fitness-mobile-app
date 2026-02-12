@@ -23,6 +23,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.fitness.app.ui.components.CMSDropdown
 import com.fitness.app.ui.components.CMSInputField
 import com.fitness.app.ui.components.DismissibleErrorBanner
+import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.PhotoSelector
 
 /**
@@ -38,19 +39,10 @@ fun PostScreen(
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
 
-    // Using Scaffold for TopAppBar
+    // Using Scaffold with FitTrack branded header
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "New Post",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = accentDark
-                        )
-                    )
-                },
+            FitTrackHeader(
                 actions = {
                     Button(
                         onClick = { viewModel.submitPost(onSuccess = onPostCreated) },
@@ -65,9 +57,8 @@ fun PostScreen(
                             tint = Color.White
                         )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
             )
         },
         containerColor = bgColor

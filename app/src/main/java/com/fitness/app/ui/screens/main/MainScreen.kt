@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.ai_tips.AITipsScreen
 import com.fitness.app.ui.screens.feed.FeedScreen
+import com.fitness.app.ui.screens.profile.EditProfileScreen
 import com.fitness.app.ui.screens.profile.ProfileScreen
 import com.fitness.app.ui.screens.post.PostScreen
 
@@ -60,7 +61,7 @@ sealed class BottomNavItem(
 }
 
 @Composable
-fun MainScreen(onNavigateToSettings: () -> Unit) {
+fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
     val items = listOf(
         BottomNavItem.Feed,
@@ -133,7 +134,16 @@ fun MainScreen(onNavigateToSettings: () -> Unit) {
                 AITipsScreen()
             }
             composable(Screen.Profile.route) {
-                ProfileScreen(onNavigateToSettings = onNavigateToSettings)
+                ProfileScreen(
+                    onLogout = onLogout,
+                    onEditProfile = { navController.navigate(Screen.EditProfile.route) }
+                )
+            }
+            composable(Screen.EditProfile.route) {
+                EditProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onProfileUpdated = { navController.popBackStack() }
+                )
             }
         }
     }

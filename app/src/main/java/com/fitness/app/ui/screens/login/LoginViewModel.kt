@@ -14,6 +14,12 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import android.util.Base64
 import org.json.JSONObject
+import android.content.Context
+import com.fitness.app.data.local.AppDatabase
+import com.fitness.app.data.model.extractId
+import com.fitness.app.data.model.toUserEntity
+import com.fitness.app.data.repository.AuthRepository
+import com.fitness.app.data.repository.UserProfilesRepository
 
 data class LoginUiState(
     val email: String = "",
@@ -27,6 +33,8 @@ data class LoginUiState(
 
 class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
     private val gson = Gson()
+    private val authRepository = AuthRepository()
+    private val userProfilesRepository = UserProfilesRepository()
 
     fun onEmailChanged(email: String) {
         updateState { it.copy(email = email, emailError = null, errorMessage = null) }
@@ -40,7 +48,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
         updateState { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun onSignInClicked(onSuccess: () -> Unit) {
+    fun onSignInClicked(onSuccess: () -> Unit, context: Context) {
         // Validation
         var hasError = false
         if (uiState.value.email.isBlank()) {
@@ -89,18 +97,32 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                 userObj?.get("username")?.asString
                                     ?: userObj?.get("email")?.asString
                                     ?: uiState.value.email
+                            val name = userObj?.get("name")?.asString
+                            val email = userObj?.get("email")?.asString ?: uiState.value.email
+                            val picture = userObj?.get("picture")?.asString
+                            val description =
+                                userObj?.get("description")?.asString
+                            val sportType = userObj?.get("sportType")?.asString
                             val cookieToken = NetworkConfig.getAuthCookieValue()
+                            val resolvedToken = token ?: authHeader ?: cookieAuth ?: cookieToken
                             UserSession.setUser(
+                                name = name,
                                 username = username,
-                                accessToken = token ?: authHeader ?: cookieAuth ?: cookieToken
+                                email = email,
+                                picture = picture,
+                                bio = description,
+                                sportType = sportType,
+                                accessToken = resolvedToken
                             )
+                            UserSession.persistAccessToken(context, resolvedToken)
                         } else {
-                            UserSession.setUser(username = uiState.value.email)
+                            UserSession.setUser(username = uiState.value.email, email = uiState.value.email)
                         }
                         android.util.Log.d(
                             "LoginViewModel",
                             "Cookies after login: ${NetworkConfig.dumpCookies()}"
                         )
+                        fetchAndPersistProfile(context)
                         Result.success(Unit)
                     } catch (e: IOException) {
                         val msg = e.message?.takeIf { it.isNotBlank() } ?: "Network error. Please try again."
@@ -127,6 +149,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
         accessToken: String?,
         refreshToken: String?,
         userId: String?,
+        context: Context,
         onSuccess: () -> Unit
     ) {
         // TODO: Persist tokens securely and fetch user profile if needed.
@@ -139,9 +162,19 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             "Google tokens received. accessTokenLength=${accessToken.length}"
         )
         val username = extractUsernameFromJwt(accessToken)
-        UserSession.setUser(userId = userId, username = username, accessToken = accessToken)
-        updateState { it.copy(isLoading = false, errorMessage = null) }
-        onSuccess()
+        val email = username?.takeIf { it.contains("@") }
+        UserSession.setUser(
+            userId = userId,
+            username = username,
+            email = email,
+            accessToken = accessToken
+        )
+        UserSession.persistAccessToken(context, accessToken)
+        viewModelScope.launch {
+            fetchAndPersistProfile(context)
+            updateState { it.copy(isLoading = false, errorMessage = null) }
+            onSuccess()
+        }
     }
 
     fun clearError() {
@@ -162,6 +195,56 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                 .ifBlank { null }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    private suspend fun fetchAndPersistProfile(context: Context) {
+        withContext(Dispatchers.IO) {
+            val profileResult = authRepository.getProfile()
+            profileResult.fold(
+                onSuccess = { profile ->
+                    val entity = profile.toUserEntity()
+                    val dao = AppDatabase.getInstance(context).userDao()
+                    dao.upsert(entity)
+                    UserSession.setUser(
+                        userId = profile.extractId(),
+                        name = profile.name,
+                        username = entity.username,
+                        email = profile.email,
+                        picture = profile.picture,
+                        bio = profile.description,
+                        sportType = profile.sportType,
+                        streak = profile.streak
+                    )
+                    val userId = profile.extractId()
+                    if (!userId.isNullOrBlank()) {
+                        val extraResult = userProfilesRepository.getUserProfile(userId)
+                        extraResult.onSuccess { extra ->
+                            val updated =
+                                entity.copy(
+                                    currentWeight = extra.currentWeight,
+                                    age = extra.age,
+                                    sex = extra.sex,
+                                    bodyFatPercentage = extra.bodyFatPercentage,
+                                    oneRmSquat = extra.oneRm?.squat,
+                                    oneRmBench = extra.oneRm?.bench,
+                                    oneRmDeadlift = extra.oneRm?.deadlift,
+                                    workoutsPerWeek = extra.workoutsPerWeek,
+                                    height = extra.height,
+                                    vo2max = extra.vo2max
+                                )
+                            dao.upsert(updated)
+                        }
+                    }
+                },
+                onFailure = { error ->
+                    android.util.Log.e(
+                        "LoginViewModel",
+                        "Profile fetch failed: ${error.message}",
+                        error
+                    )
+                }
+            )
         }
     }
 }

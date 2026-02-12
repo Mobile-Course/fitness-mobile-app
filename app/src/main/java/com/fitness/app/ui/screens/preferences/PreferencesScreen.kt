@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fitness.app.ui.components.FitTrackHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,16 +37,7 @@ fun PreferencesScreen(
             .fillMaxSize()
             .background(bgColor)
     ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Preferences",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = accentDark
-                    )
-                )
-            },
+        FitTrackHeader(
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -54,11 +46,8 @@ fun PreferencesScreen(
                         tint = accentDark
                     )
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
+            }
         )
-
-        Divider(color = Color(0xFFE2E8F0))
 
         Column(
             modifier = Modifier
