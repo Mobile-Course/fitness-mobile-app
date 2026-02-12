@@ -32,6 +32,7 @@ fun UserProfileDto.toUserEntity(): UserEntity {
     return UserEntity(
         username = key,
         userId = extractId(),
+        refreshToken = null,
         name = name,
         lastName = lastName,
         picture = picture,

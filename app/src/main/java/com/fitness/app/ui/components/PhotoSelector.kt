@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -37,13 +38,15 @@ fun PhotoSelector(
     onClick: () -> Unit,
     selectedImageUri: android.net.Uri? = null,
     onRemoveClick: (() -> Unit)? = null,
+    placeholderHeight: Dp = 56.dp,
+    selectedImageHeight: Dp = 200.dp,
     modifier: Modifier = Modifier
 ) {
     if (selectedImageUri != null) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(selectedImageHeight)
                 .clickable(onClick = onClick)
                 .border(
                     width = 1.dp,
@@ -86,7 +89,7 @@ fun PhotoSelector(
             onClick = onClick,
             modifier = modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(placeholderHeight),
             shape = RoundedCornerShape(4.dp),
             border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
             colors = ButtonDefaults.outlinedButtonColors(

@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.fitness.app.auth.UserSession
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.ai_tips.AITipsScreen
 import com.fitness.app.ui.screens.feed.FeedScreen
@@ -63,12 +64,19 @@ sealed class BottomNavItem(
 @Composable
 fun MainScreen(onLogout: () -> Unit) {
     val navController = rememberNavController()
+    val forcedLogoutVersion by UserSession.forcedLogoutVersion.collectAsState()
     val items = listOf(
         BottomNavItem.Feed,
         BottomNavItem.Post,
         BottomNavItem.AITips,
         BottomNavItem.Profile
     )
+
+    LaunchedEffect(forcedLogoutVersion) {
+        if (forcedLogoutVersion > 0) {
+            onLogout()
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -126,6 +134,11 @@ fun MainScreen(onLogout: () -> Unit) {
                     onPostCreated = {
                         navController.navigate(Screen.Feed.route) {
                             popUpTo(Screen.Feed.route) { inclusive = true }
+                        }
+                    },
+                    onCancel = {
+                        navController.navigate(Screen.Feed.route) {
+                            launchSingleTop = true
                         }
                     }
                 )

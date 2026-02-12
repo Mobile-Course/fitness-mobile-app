@@ -25,7 +25,7 @@ fun FitTrackHeader(
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable (RowScope.() -> Unit)? = null
 ) {
-    val brandColor = Color(0xFF3B3FC7) // deep indigo matching the icon in the picture
+    val brandColor = Color(0xFF6366F1)
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val headerHeight = screenHeight * 0.08f
 

@@ -5,6 +5,8 @@ import com.fitness.app.data.model.LikePostRequest
 import com.fitness.app.data.model.AddCommentRequest
 import com.fitness.app.data.model.PaginationResponse
 import com.fitness.app.data.model.Post
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 class PostsRepository {
     private val apiService = RetrofitClient.postsApiService
@@ -78,6 +80,27 @@ class PostsRepository {
                                 ?: response.message()
                                 ?: "Unknown error"
                 Result.failure(Exception("Error adding comment: $message"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createPost(
+        fields: Map<String, RequestBody>,
+        file: MultipartBody.Part? = null
+    ): Result<Post> {
+        return try {
+            val response = apiService.createPost(fields = fields, file = file)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message =
+                    errorBody?.takeIf { it.isNotBlank() }
+                        ?: response.message()
+                        ?: "Unknown error"
+                Result.failure(Exception("Error creating post: $message"))
             }
         } catch (e: Exception) {
             Result.failure(e)

@@ -444,6 +444,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
                         val updated =
                             if (extraPayload != null) {
                                 entity.copy(
+                                    refreshToken = previous?.refreshToken,
                                     profileSummaryText = previous?.profileSummaryText,
                                     lastWorkoutVolume = previous?.lastWorkoutVolume,
                                     lastWorkoutIntensity = previous?.lastWorkoutIntensity,
@@ -463,7 +464,7 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
                                     vo2max = extraPayload.vo2max
                                 )
                             } else {
-                                entity
+                                entity.copy(refreshToken = previous?.refreshToken)
                             }
                         dao.upsert(updated)
                         UserSession.setUser(

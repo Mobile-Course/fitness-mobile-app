@@ -18,6 +18,8 @@ interface AuthApiService {
 
     @GET("api/auth/profile") suspend fun getProfile(): Response<UserProfileDto>
 
+    @GET("api/auth/refresh") suspend fun refresh(): Response<Unit>
+
     @POST("api/auth/profile")
     suspend fun updateProfile(
         @Body request: UpdateUserProfileRequest

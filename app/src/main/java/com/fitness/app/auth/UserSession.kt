@@ -35,7 +35,14 @@ object UserSession {
     private val _accessToken = MutableStateFlow<String?>(null)
     val accessToken: StateFlow<String?> = _accessToken.asStateFlow()
 
+    private val _refreshToken = MutableStateFlow<String?>(null)
+    val refreshToken: StateFlow<String?> = _refreshToken.asStateFlow()
+
+    private val _forcedLogoutVersion = MutableStateFlow(0L)
+    val forcedLogoutVersion: StateFlow<Long> = _forcedLogoutVersion.asStateFlow()
+
     @Volatile private var accessTokenValue: String? = null
+    @Volatile private var refreshTokenValue: String? = null
 
     fun persistAccessToken(context: android.content.Context, token: String?) {
         if (token.isNullOrBlank()) return
@@ -66,7 +73,8 @@ object UserSession {
         sportType: String? = null,
         streak: Int? = null,
         userId: String? = null,
-        accessToken: String? = null
+        accessToken: String? = null,
+        refreshToken: String? = null
     ) {
         if (name != null) _name.value = name
         if (username != null) _username.value = username
@@ -79,6 +87,12 @@ object UserSession {
         if (accessToken != null) {
             _accessToken.value = accessToken
             accessTokenValue = accessToken
+            _forcedLogoutVersion.value = 0L
+        }
+        if (refreshToken != null) {
+            _refreshToken.value = refreshToken
+            refreshTokenValue = refreshToken
+            _forcedLogoutVersion.value = 0L
         }
     }
 
@@ -92,8 +106,15 @@ object UserSession {
         _streak.value = null
         _userId.value = null
         _accessToken.value = null
+        _refreshToken.value = null
         accessTokenValue = null
+        refreshTokenValue = null
     }
 
     fun getAccessToken(): String? = accessTokenValue
+    fun getRefreshToken(): String? = refreshTokenValue
+
+    fun notifyForcedLogout() {
+        _forcedLogoutVersion.value = _forcedLogoutVersion.value + 1L
+    }
 }

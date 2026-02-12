@@ -43,6 +43,13 @@ class MainActivity : ComponentActivity() {
                                         .userDao()
                                         .getUser()
                                 if (user != null) {
+                                    val refreshToken = user.refreshToken?.trim()
+                                    if (refreshToken.isNullOrBlank()) {
+                                        AppDatabase.getInstance(this@MainActivity).userDao().clear()
+                                        UserSession.clearPersistedAccessToken(this@MainActivity)
+                                        UserSession.clear()
+                                        Screen.Login.route
+                                    } else {
                                     UserSession.restoreAccessToken(this@MainActivity)
                                     UserSession.setUser(
                                         name = user.name,
@@ -52,9 +59,11 @@ class MainActivity : ComponentActivity() {
                                         picture = user.picture,
                                         bio = user.description,
                                         sportType = user.sportType,
-                                        streak = user.streak
+                                        streak = user.streak,
+                                        refreshToken = refreshToken
                                     )
                                     "main"
+                                    }
                                 } else {
                                     Screen.Login.route
                                 }

@@ -16,6 +16,7 @@ import android.util.Base64
 import org.json.JSONObject
 import android.content.Context
 import com.fitness.app.data.local.AppDatabase
+import com.fitness.app.data.local.UserEntity
 import com.fitness.app.data.model.extractId
 import com.fitness.app.data.model.toUserEntity
 import com.fitness.app.data.repository.AuthRepository
@@ -76,6 +77,10 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             .firstOrNull { it.startsWith("Authentication=") }
                             ?.substringAfter("Authentication=")
                             ?.substringBefore(";")
+                        val cookieRefresh = setCookieHeaders
+                            .firstOrNull { it.startsWith("Refresh=") }
+                            ?.substringAfter("Refresh=")
+                            ?.substringBefore(";")
                         android.util.Log.d(
                             "LoginViewModel",
                             "Login headers auth=${authHeader != null} setCookieCount=${setCookieHeaders.size}"
@@ -104,7 +109,9 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                 userObj?.get("description")?.asString
                             val sportType = userObj?.get("sportType")?.asString
                             val cookieToken = NetworkConfig.getAuthCookieValue()
+                            val refreshFromCookieStore = NetworkConfig.getRefreshCookieValue()
                             val resolvedToken = token ?: authHeader ?: cookieAuth ?: cookieToken
+                            val resolvedRefreshToken = cookieRefresh ?: refreshFromCookieStore
                             UserSession.setUser(
                                 name = name,
                                 username = username,
@@ -112,17 +119,26 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                 picture = picture,
                                 bio = description,
                                 sportType = sportType,
-                                accessToken = resolvedToken
+                                accessToken = resolvedToken,
+                                refreshToken = resolvedRefreshToken
                             )
                             UserSession.persistAccessToken(context, resolvedToken)
+                            android.util.Log.d(
+                                "LoginViewModel",
+                                "Refresh token resolved=${!resolvedRefreshToken.isNullOrBlank()}"
+                            )
+                            fetchAndPersistProfile(context, resolvedRefreshToken)
                         } else {
-                            UserSession.setUser(username = uiState.value.email, email = uiState.value.email)
+                            UserSession.setUser(
+                                username = uiState.value.email,
+                                email = uiState.value.email
+                            )
+                            fetchAndPersistProfile(context, null)
                         }
                         android.util.Log.d(
                             "LoginViewModel",
                             "Cookies after login: ${NetworkConfig.dumpCookies()}"
                         )
-                        fetchAndPersistProfile(context)
                         Result.success(Unit)
                     } catch (e: IOException) {
                         val msg = e.message?.takeIf { it.isNotBlank() } ?: "Network error. Please try again."
@@ -167,11 +183,12 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
             userId = userId,
             username = username,
             email = email,
-            accessToken = accessToken
+            accessToken = accessToken,
+            refreshToken = refreshToken
         )
         UserSession.persistAccessToken(context, accessToken)
         viewModelScope.launch {
-            fetchAndPersistProfile(context)
+            fetchAndPersistProfile(context, refreshToken)
             updateState { it.copy(isLoading = false, errorMessage = null) }
             onSuccess()
         }
@@ -198,13 +215,19 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
         }
     }
 
-    private suspend fun fetchAndPersistProfile(context: Context) {
+    private suspend fun fetchAndPersistProfile(context: Context, refreshToken: String?) {
         withContext(Dispatchers.IO) {
             val profileResult = authRepository.getProfile()
             profileResult.fold(
                 onSuccess = { profile ->
-                    val entity = profile.toUserEntity()
                     val dao = AppDatabase.getInstance(context).userDao()
+                    val previous = dao.getUser()
+                    val resolvedRefreshToken =
+                        refreshToken
+                            ?: NetworkConfig.getRefreshCookieValue()
+                            ?: UserSession.getRefreshToken()
+                            ?: previous?.refreshToken
+                    val entity = profile.toUserEntity().copy(refreshToken = resolvedRefreshToken)
                     dao.upsert(entity)
                     UserSession.setUser(
                         userId = profile.extractId(),
@@ -214,7 +237,8 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         picture = profile.picture,
                         bio = profile.description,
                         sportType = profile.sportType,
-                        streak = profile.streak
+                        streak = profile.streak,
+                        refreshToken = resolvedRefreshToken
                     )
                     val userId = profile.extractId()
                     if (!userId.isNullOrBlank()) {
@@ -222,6 +246,7 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         extraResult.onSuccess { extra ->
                             val updated =
                                 entity.copy(
+                                    refreshToken = resolvedRefreshToken,
                                     currentWeight = extra.currentWeight,
                                     age = extra.age,
                                     sex = extra.sex,
@@ -238,6 +263,29 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                     }
                 },
                 onFailure = { error ->
+                    val dao = AppDatabase.getInstance(context).userDao()
+                    val fallbackRefreshToken =
+                        refreshToken ?: NetworkConfig.getRefreshCookieValue() ?: UserSession.getRefreshToken()
+                    val fallbackUsername =
+                        UserSession.username.value?.takeIf { it.isNotBlank() }
+                            ?: UserSession.email.value?.takeIf { it.isNotBlank() }
+                            ?: uiState.value.email
+                    val existing = dao.getUser()
+                    val fallbackEntity =
+                        (existing ?: UserEntity(
+                            username = fallbackUsername,
+                            userId = UserSession.userId.value,
+                            refreshToken = fallbackRefreshToken,
+                            name = UserSession.name.value,
+                            lastName = null,
+                            picture = UserSession.picture.value,
+                            email = UserSession.email.value ?: uiState.value.email,
+                            streak = UserSession.streak.value,
+                            sportType = UserSession.sportType.value,
+                            description = UserSession.bio.value
+                        )).copy(refreshToken = fallbackRefreshToken)
+                    dao.upsert(fallbackEntity)
+                    UserSession.setUser(refreshToken = fallbackRefreshToken)
                     android.util.Log.e(
                         "LoginViewModel",
                         "Profile fetch failed: ${error.message}",
