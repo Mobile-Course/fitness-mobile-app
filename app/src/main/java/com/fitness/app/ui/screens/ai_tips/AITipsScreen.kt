@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,8 +33,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitness.app.ui.components.FitTrackHeader
 
@@ -57,12 +64,22 @@ fun AITipsScreen(
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
-        FitTrackHeader()
-
-        Text(
-            text = "Ask AI Coach",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        FitTrackHeader(
+            actions = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = " Ask AI Coach",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         )
 
         if (uiState.error != null) {
@@ -79,7 +96,12 @@ fun AITipsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(uiState.messages, key = { it.id }) { message ->
+            val visibleMessages =
+                uiState.messages.filterNot { message ->
+                    message.role == ChatRole.ASSISTANT && message.content.isBlank()
+                }
+
+            items(visibleMessages, key = { it.id }) { message ->
                 ChatBubble(message = message)
             }
 
@@ -116,10 +138,16 @@ fun AITipsScreen(
             OutlinedTextField(
                 value = uiState.query,
                 onValueChange = viewModel::onQueryChanged,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask about workouts, nutrition, recovery...") },
+                modifier = Modifier.weight(1f).height(48.dp),
+                placeholder = {
+                    Text(
+                        text = "Ask about workouts, nutrition, recovery...",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp)
+                    )
+                },
                 shape = RoundedCornerShape(14.dp),
-                maxLines = 3,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline
@@ -147,6 +175,8 @@ fun AITipsScreen(
 @Composable
 private fun ChatBubble(message: ChatMessage) {
     val isUser = message.role == ChatRole.USER
+    val isHebrew = containsHebrew(message.content)
+    val formattedText = toBoldAnnotatedString(message.content)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -158,11 +188,45 @@ private fun ChatBubble(message: ChatMessage) {
         ) {
             Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 Text(
-                    text = message.content,
+                    text = formattedText,
                     color = if (isUser) Color.White else Color(0xFF111827),
-                    style = MaterialTheme.typography.bodyMedium
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            textDirection = if (isHebrew) TextDirection.Rtl else TextDirection.Ltr
+                        )
                 )
             }
+        }
+    }
+}
+
+private fun containsHebrew(text: String): Boolean {
+    return text.any { it in '\u0590'..'\u05FF' }
+}
+
+private fun toBoldAnnotatedString(text: String): AnnotatedString {
+    if (!text.contains("**")) return AnnotatedString(text)
+
+    return buildAnnotatedString {
+        var cursor = 0
+        while (cursor < text.length) {
+            val open = text.indexOf("**", cursor)
+            if (open == -1) {
+                append(text.substring(cursor))
+                break
+            }
+
+            append(text.substring(cursor, open))
+            val close = text.indexOf("**", open + 2)
+            if (close == -1) {
+                append(text.substring(open))
+                break
+            }
+
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(text.substring(open + 2, close))
+            }
+            cursor = close + 2
         }
     }
 }

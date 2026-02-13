@@ -38,10 +38,10 @@ class CoachRepository {
 
     private fun extractText(payload: String): String {
         val parsed = runCatching { gson.fromJson(payload, JsonElement::class.java) }.getOrNull()
-            ?: return payload
+            ?: return if (looksLikeJson(payload)) "" else payload
 
         if (parsed.isJsonPrimitive) return parsed.asString
-        if (!parsed.isJsonObject) return payload
+        if (!parsed.isJsonObject) return ""
 
         val obj = parsed.asJsonObject
         val direct = extractFromObject(obj)
@@ -55,8 +55,28 @@ class CoachRepository {
                 dataElement.isJsonObject -> extractFromObject(dataElement.asJsonObject)
                 else -> null
             }
+        if (!nested.isNullOrBlank()) return nested
 
-        return nested ?: payload
+        // OpenAI-like stream shape: { choices: [{ delta: { content: "..." } }] }
+        val choicesElement = obj.get("choices")
+        if (choicesElement != null && choicesElement.isJsonArray && choicesElement.asJsonArray.size() > 0) {
+            val choices = choicesElement.asJsonArray
+            val firstChoice = choices.get(0)
+            if (firstChoice != null && firstChoice.isJsonObject) {
+                val deltaObj = firstChoice.asJsonObject.getAsJsonObject("delta")
+                val deltaContent =
+                    deltaObj?.get("content")?.takeIf { it.isJsonPrimitive }?.asString
+                if (!deltaContent.isNullOrBlank()) return deltaContent
+
+                val messageObj = firstChoice.asJsonObject.getAsJsonObject("message")
+                val messageContent =
+                    messageObj?.get("content")?.takeIf { it.isJsonPrimitive }?.asString
+                if (!messageContent.isNullOrBlank()) return messageContent
+            }
+        }
+
+        // Ignore metadata / unrelated JSON messages.
+        return ""
     }
 
     private fun extractFromObject(obj: com.google.gson.JsonObject): String? {
@@ -64,5 +84,10 @@ class CoachRepository {
             .firstNotNullOfOrNull { key ->
                 obj.get(key)?.takeIf { it.isJsonPrimitive }?.asString
             }
+    }
+
+    private fun looksLikeJson(text: String): Boolean {
+        val trimmed = text.trim()
+        return trimmed.startsWith("{") || trimmed.startsWith("[")
     }
 }
