@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.viewModelScope
+import com.fitness.app.data.model.CreatePostRequest
+import com.fitness.app.data.model.CreateWorkoutDetailsRequest
 import com.fitness.app.data.repository.PostsRepository
 import com.fitness.app.ui.base.BaseViewModel
 import com.google.gson.Gson
@@ -129,17 +131,8 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
         viewModelScope.launch {
             val result =
                 withContext(Dispatchers.IO) {
-                    val fields = mutableMapOf<String, RequestBody>()
-                    textPart(current.title)?.let { fields["title"] = it }
-                    textPart(current.description)?.let { fields["description"] = it }
-                    fields["likesNumber"] = "0".toRequestBody("text/plain".toMediaType())
-
-                    val workoutDetails = buildWorkoutDetails(current, durationValue, caloriesValue)
-                    if (workoutDetails.isNotEmpty()) {
-                        fields["workoutDetails"] =
-                            gson.toJson(workoutDetails).toRequestBody("text/plain".toMediaType())
-                    }
-
+                    val workoutDetails =
+                        buildWorkoutDetailsRequest(current, durationValue, caloriesValue)
                     val filePart =
                         current.selectedImageUri?.let { uri ->
                             createFilePart(context = context, uri = uri)
@@ -150,7 +143,26 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                         )
                     }
 
-                    postsRepository.createPost(fields = fields, file = filePart)
+                    if (filePart == null) {
+                        postsRepository.createPost(
+                            CreatePostRequest(
+                                title = current.title.trim(),
+                                description = current.description,
+                                pictures = emptyList(),
+                                workoutDetails = workoutDetails
+                            )
+                        )
+                    } else {
+                        val fields = mutableMapOf<String, RequestBody>()
+                        fields["title"] = current.title.trim().toRequestBody("text/plain".toMediaType())
+                        fields["description"] = current.description.toRequestBody("text/plain".toMediaType())
+                        if (!isEmptyWorkoutDetails(workoutDetails)) {
+                            fields["workoutDetails"] =
+                                gson.toJson(workoutDetails).toRequestBody("text/plain".toMediaType())
+                        }
+
+                        postsRepository.createPostMultipart(fields = fields, file = filePart)
+                    }
                 }
 
             result.fold(
@@ -159,42 +171,50 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                     onSuccess()
                 },
                 onFailure = { error ->
-                    updateState { it.copy(isPosting = false, error = error.message ?: "Failed to create post") }
+                    val raw = error.message.orEmpty()
+                    val isServer500 = raw.contains("500") || raw.contains("Internal server error")
+                    val msg =
+                        when {
+                            current.selectedImageUri != null && isServer500 ->
+                                "Upload failed on server (500). If text-only post works, backend upload path may be misconfigured (e.g., missing uploads/posts folder)."
+                            raw.isNotBlank() -> raw
+                            else -> "Failed to create post. Try again without image or optional details."
+                        }
+                    updateState { it.copy(isPosting = false, error = msg) }
                 }
             )
         }
     }
 
-    private fun buildWorkoutDetails(
+    private fun buildWorkoutDetailsRequest(
         state: PostUiState,
         durationValue: Int?,
         caloriesValue: Int?
-    ): Map<String, Any> {
-        val details = mutableMapOf<String, Any>()
-        if (state.workoutType.isNotBlank()) details["type"] = state.workoutType.trim()
-        if (durationValue != null) details["duration"] = durationValue
-        if (caloriesValue != null) details["calories"] = caloriesValue
-        if (state.subjectiveFeedbackFeelings.isNotBlank()) {
-            details["subjectiveFeedbackFeelings"] = state.subjectiveFeedbackFeelings.trim()
-        }
-        if (state.personalGoals.isNotBlank()) {
-            details["personalGoals"] = state.personalGoals.trim()
-        }
-        return details
+    ): CreateWorkoutDetailsRequest {
+        return CreateWorkoutDetailsRequest(
+            type = state.workoutType.trim().ifBlank { null },
+            duration = durationValue,
+            calories = caloriesValue,
+            subjectiveFeedbackFeelings = state.subjectiveFeedbackFeelings.trim().ifBlank { null },
+            personalGoals = state.personalGoals.trim().ifBlank { null }
+        )
     }
 
-    private fun textPart(value: String?): RequestBody? {
-        val trimmed = value?.trim().orEmpty()
-        if (trimmed.isBlank()) return null
-        return trimmed.toRequestBody("text/plain".toMediaType())
+    private fun isEmptyWorkoutDetails(details: CreateWorkoutDetailsRequest): Boolean {
+        return details.type == null &&
+            details.duration == null &&
+            details.calories == null &&
+            details.subjectiveFeedbackFeelings == null &&
+            details.personalGoals == null
     }
 
     private fun createFilePart(context: Context, uri: Uri): MultipartBody.Part? {
         return try {
             val resolver = context.contentResolver
-            val mimeType = resolver.getType(uri) ?: "image/*"
+            val rawName = queryFileName(context, uri) ?: "post_image"
+            val mimeType = resolveMimeType(resolver.getType(uri), rawName) ?: return null
             if (mimeType.lowercase() !in allowedMimeTypes) return null
-            val name = queryFileName(context, uri) ?: "post_image.jpg"
+            val name = ensureImageExtension(rawName, mimeType)
             val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
             if (bytes.size.toLong() > maxUploadBytes) return null
             val body = bytes.toRequestBody(mimeType.toMediaType())
@@ -217,6 +237,41 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
             } else {
                 null
             }
+        }
+    }
+
+    private fun ensureImageExtension(fileName: String, mimeType: String): String {
+        val dotIndex = fileName.lastIndexOf('.')
+        if (dotIndex > 0 && dotIndex < fileName.length - 1) {
+            val base = fileName.substring(0, dotIndex)
+            val ext = fileName.substring(dotIndex + 1).lowercase()
+            if (ext in setOf("jpg", "jpeg", "png", "gif", "webp")) {
+                return "$base.$ext"
+            }
+        }
+
+        val ext =
+            when (mimeType.lowercase()) {
+                "image/png" -> ".png"
+                "image/gif" -> ".gif"
+                "image/webp" -> ".webp"
+                "image/jpeg", "image/jpg" -> ".jpg"
+                else -> ".jpg"
+            }
+        return "$fileName$ext"
+    }
+
+    private fun resolveMimeType(rawMimeType: String?, fileName: String): String? {
+        val mime = rawMimeType?.trim()?.lowercase()
+        if (!mime.isNullOrBlank() && mime != "image/*") return mime
+
+        return when {
+            fileName.endsWith(".png", ignoreCase = true) -> "image/png"
+            fileName.endsWith(".gif", ignoreCase = true) -> "image/gif"
+            fileName.endsWith(".webp", ignoreCase = true) -> "image/webp"
+            fileName.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+            fileName.endsWith(".jpg", ignoreCase = true) -> "image/jpeg"
+            else -> "image/jpeg"
         }
     }
 }

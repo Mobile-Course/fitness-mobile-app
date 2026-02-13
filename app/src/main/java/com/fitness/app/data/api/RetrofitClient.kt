@@ -1,6 +1,9 @@
 package com.fitness.app.data.api
 
 import java.util.concurrent.TimeUnit
+import com.fitness.app.data.model.Author
+import com.fitness.app.data.model.AuthorJsonAdapter
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -22,11 +25,16 @@ object RetrofitClient {
                         .writeTimeout(30, TimeUnit.SECONDS)
                         .build()
 
+        private val gson =
+                GsonBuilder()
+                        .registerTypeAdapter(Author::class.java, AuthorJsonAdapter())
+                        .create()
+
         private val retrofit =
                 Retrofit.Builder()
                         .baseUrl(BASE_URL)
                         .client(okHttpClient)
-                        .addConverterFactory(GsonConverterFactory.create())
+                        .addConverterFactory(GsonConverterFactory.create(gson))
                         .build()
 
         val authApiService: AuthApiService = retrofit.create(AuthApiService::class.java)
