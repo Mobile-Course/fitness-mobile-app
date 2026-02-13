@@ -1,18 +1,19 @@
 package com.fitness.app.ui.screens.discover
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,21 +25,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.fitness.app.auth.UserSession
 import com.fitness.app.data.model.DiscoverUser
 import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.PostItem
+import com.fitness.app.ui.screens.profile.StatCard
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 @Composable
 fun DiscoverProfileScreen(
@@ -47,18 +55,48 @@ fun DiscoverProfileScreen(
     viewModel: DiscoverProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val posts by viewModel.posts.collectAsState()
+    val isPostsLoading by viewModel.isPostsLoading.collectAsState()
+    val postsError by viewModel.postsError.collectAsState()
     val likedPostIds by viewModel.likedPostIds.collectAsState()
-    val currentUsername by UserSession.username.collectAsState()
+    val currentUsername by viewModel.currentUsername.collectAsState()
+    val listState = rememberLazyListState()
+
+    val bgColor = Color(0xFFF0F4F8)
+    val accentDark = Color(0xFF343E4E)
 
     LaunchedEffect(selectedUser?.id) {
         viewModel.initialize(selectedUser)
     }
 
+    val isScrollToEnd by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) return@derivedStateOf false
+            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisibleItemIndex >= totalItems - 2
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { isScrollToEnd to isPostsLoading }
+            .distinctUntilChanged()
+            .filter { (scrollToEnd, loading) -> scrollToEnd && !loading }
+            .collect { viewModel.loadPosts() }
+    }
+
+    val avatarFallbackSeed =
+        uiState.profile.username.ifBlank { uiState.profile.name.ifBlank { "user" } }
+    val avatarUrl =
+        uiState.profile.picture?.takeIf { it.isNotBlank() }
+            ?: "https://ui-avatars.com/api/?name=${avatarFallbackSeed}&background=343E4E&color=ffffff"
+
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(bgColor)
     ) {
         FitTrackHeader(
             navigationIcon = {
@@ -71,38 +109,94 @@ fun DiscoverProfileScreen(
             }
         )
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
             item {
-                UserSummaryCard(user = uiState.user)
-            }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        androidx.compose.foundation.layout.Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp)
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current).data(avatarUrl).build(),
+                                contentDescription = "Profile Picture",
+                                modifier = Modifier.size(80.dp).clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            StatCard(
+                                value = uiState.profile.streak.toString(),
+                                label = "Streak",
+                                accentDark = accentDark
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            StatCard(
+                                value = uiState.profile.posts.toString(),
+                                label = "Posts",
+                                accentDark = accentDark
+                            )
+                        }
 
-            if (uiState.isLoading && uiState.posts.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.width(20.dp))
+
+                        androidx.compose.foundation.layout.Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = uiState.profile.name,
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = accentDark
+                                    )
+                                )
+                                val username =
+                                    uiState.profile.username.ifBlank {
+                                        uiState.profile.email.substringBefore("@")
+                                    }
+                                if (username.isNotBlank()) {
+                                    Text(
+                                        text = "@${username}",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = Color.Gray
+                                        )
+                                    )
+                                }
+                                if (uiState.profile.bio.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = uiState.profile.bio,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = accentDark
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-            } else if (uiState.error != null) {
-                item {
-                    Text(
-                        text = uiState.error ?: "Failed to load user profile",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-            } else if (uiState.posts.isEmpty()) {
+            }
+
+            if (posts.isEmpty() && !isPostsLoading && postsError == null) {
                 item {
                     Text(
                         text = "No posts yet.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = accentDark,
+                            textAlign = TextAlign.Center
+                        ),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
             } else {
-                items(uiState.posts, key = { it.id }) { post ->
+                items(posts, key = { it.id }) { post ->
                     val isLikedByUser =
                         currentUsername != null &&
                             post.likes?.any { it.username == currentUsername } == true
@@ -113,60 +207,27 @@ fun DiscoverProfileScreen(
                         onAddComment = { content -> viewModel.addComment(post.id, content) }
                     )
                 }
-            }
-        }
-    }
-}
 
-@Composable
-private fun UserSummaryCard(user: DiscoverUser?) {
-    val context = LocalContext.current
-    val username = user?.username.orEmpty()
-    val avatarUrl =
-        user?.picture?.takeIf { it.isNotBlank() }
-            ?: "https://ui-avatars.com/api/?name=${username.ifBlank { "user" }}&background=random"
-
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AsyncImage(
-                model = ImageRequest.Builder(context).data(avatarUrl).build(),
-                contentDescription = "Profile picture",
-                modifier = Modifier.size(72.dp).clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            Spacer(modifier = Modifier.size(12.dp))
-            Column {
-                Text(
-                    text = user?.displayName() ?: "Unknown user",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                if (username.isNotBlank()) {
-                    Text(
-                        text = "@$username",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                if (isPostsLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator() }
+                    }
                 }
-                if (!user?.sportType.isNullOrBlank()) {
+            }
+
+            if (postsError != null && posts.isEmpty()) {
+                item {
                     Text(
-                        text = user?.sportType.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = postsError ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
             }
-        }
-
-        if (!user?.description.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = user?.description.orEmpty(),
-                style = MaterialTheme.typography.bodyMedium
-            )
         }
     }
 }
