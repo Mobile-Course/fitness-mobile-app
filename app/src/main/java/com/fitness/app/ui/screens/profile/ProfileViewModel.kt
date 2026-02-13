@@ -11,6 +11,7 @@ import com.fitness.app.data.model.Post
 import com.fitness.app.data.repository.AuthRepository
 import com.fitness.app.data.repository.PostsRepository
 import com.fitness.app.network.NetworkConfig
+import java.time.Instant
 import com.fitness.app.ui.base.BaseViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -269,7 +270,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 Comment(
                     content = trimmed,
                     author = Author(id = "", username = username, picture = null),
-                    createdAt = ""
+                    createdAt = Instant.now().toString()
                 )
             val optimisticComments =
                 (target.comments ?: emptyList()) + optimisticComment

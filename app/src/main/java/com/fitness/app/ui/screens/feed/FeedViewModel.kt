@@ -9,6 +9,7 @@ import com.fitness.app.data.model.Author
 import com.fitness.app.data.model.Comment
 import com.fitness.app.data.repository.PostsRepository
 import com.fitness.app.network.NetworkConfig
+import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -173,7 +174,7 @@ class FeedViewModel : ViewModel() {
                     Comment(
                             content = trimmed,
                             author = Author(id = "", username = username, picture = null),
-                            createdAt = ""
+                            createdAt = Instant.now().toString()
                     )
             val optimisticComments =
                     (target.comments ?: emptyList()) + optimisticComment
