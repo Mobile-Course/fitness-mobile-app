@@ -4,6 +4,7 @@ import com.fitness.app.data.model.PaginationResponse
 import com.fitness.app.data.model.Post
 import com.fitness.app.data.model.LikePostRequest
 import com.fitness.app.data.model.AddCommentRequest
+import com.fitness.app.data.model.CreatePostRequest
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
@@ -45,9 +46,14 @@ interface PostsApiService {
             @Body body: AddCommentRequest
     ): Response<Post>
 
+    @POST("api/posts")
+    suspend fun createPostJson(
+            @Body body: CreatePostRequest
+    ): Response<Post>
+
     @Multipart
     @POST("api/posts")
-    suspend fun createPost(
+    suspend fun createPostMultipart(
             @PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>,
             @Part file: MultipartBody.Part? = null
     ): Response<Post>

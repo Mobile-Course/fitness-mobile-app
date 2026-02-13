@@ -37,8 +37,9 @@ fun PostItem(
         onLikeClick: () -> Unit,
         onAddComment: (String) -> Unit
 ) {
-    if (!post.pictures.isNullOrEmpty()) {
-        android.util.Log.d("PostItem", "First Image: ${post.pictures.first().take(50)}...")
+    val imageSource = post.src?.takeIf { it.isNotBlank() } ?: post.pictures?.firstOrNull { it.isNotBlank() }
+    if (!imageSource.isNullOrBlank()) {
+        android.util.Log.d("PostItem", "Post image source: ${imageSource.take(50)}...")
     }
 
     Card(
@@ -89,8 +90,8 @@ fun PostItem(
             }
 
             // Post Image (if any)
-            if (!post.pictures.isNullOrEmpty()) {
-                val imageUrl = post.pictures.first()
+            if (!imageSource.isNullOrBlank()) {
+                val imageUrl = imageSource
                 if (imageUrl.isNotBlank()) {
                     val imageModel = remember(imageUrl) {
                         resolveImageModel(imageUrl)
