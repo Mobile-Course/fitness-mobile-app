@@ -5,6 +5,8 @@ import com.fitness.app.data.model.LoginRequest
 import com.fitness.app.data.model.LoginResponse
 import com.fitness.app.data.model.UpdateUserProfileRequest
 import com.fitness.app.data.model.UserProfileDto
+import com.fitness.app.data.model.DiscoverUser
+import com.fitness.app.data.model.toDiscoverUserOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 
@@ -31,6 +33,20 @@ class AuthRepository {
                 Result.success(response.body()!!)
             } else {
                 Result.failure(Exception("Profile fetch failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun searchUsers(query: String): Result<List<DiscoverUser>> {
+        return try {
+            val response = apiService.searchUsers(query)
+            if (response.isSuccessful && response.body() != null) {
+                val users = response.body().orEmpty().mapNotNull { it.toDiscoverUserOrNull() }
+                Result.success(users)
+            } else {
+                Result.failure(Exception("User search failed: ${response.message()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)

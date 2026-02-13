@@ -50,6 +50,7 @@ data class Post(
 
 data class Author(
         @SerializedName("_id") val id: String,
+        val name: String? = null,
         val username: String,
         val picture: String?
 )

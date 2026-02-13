@@ -48,6 +48,7 @@ fun PostItem(
         onAddComment: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val authorDisplayName = post.author.name?.takeIf { it.isNotBlank() } ?: post.author.username
     val imageSource = post.src?.takeIf { it.isNotBlank() } ?: post.pictures?.firstOrNull { it.isNotBlank() }
     val workout = post.workoutDetails
     val hasWorkoutDetails =
@@ -89,7 +90,7 @@ fun PostItem(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                            text = post.author.username,
+                            text = authorDisplayName,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                     )

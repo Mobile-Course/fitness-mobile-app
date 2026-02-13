@@ -3,10 +3,12 @@ package com.fitness.app.ui.screens.main
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Search as SearchOutline
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PersonOutline
@@ -24,10 +26,13 @@ import androidx.navigation.compose.rememberNavController
 import com.fitness.app.auth.UserSession
 import com.fitness.app.navigation.Screen
 import com.fitness.app.ui.screens.ai_tips.AITipsScreen
+import com.fitness.app.ui.screens.discover.DiscoverProfileScreen
+import com.fitness.app.ui.screens.discover.DiscoverScreen
 import com.fitness.app.ui.screens.feed.FeedScreen
 import com.fitness.app.ui.screens.profile.EditProfileScreen
 import com.fitness.app.ui.screens.profile.ProfileScreen
 import com.fitness.app.ui.screens.post.PostScreen
+import com.fitness.app.data.model.DiscoverUser
 
 sealed class BottomNavItem(
     val route: String,
@@ -46,6 +51,12 @@ sealed class BottomNavItem(
         "Post",
         Icons.Filled.AddCircle,
         Icons.Outlined.AddCircleOutline
+    )
+    object Discover : BottomNavItem(
+        Screen.Discover.route,
+        "Discover",
+        Icons.Filled.Search,
+        Icons.Outlined.SearchOutline
     )
     object AITips : BottomNavItem(
         Screen.AITips.route,
@@ -68,6 +79,7 @@ fun MainScreen(onLogout: () -> Unit) {
     val items = listOf(
         BottomNavItem.Feed,
         BottomNavItem.Post,
+        BottomNavItem.Discover,
         BottomNavItem.AITips,
         BottomNavItem.Profile
     )
@@ -146,6 +158,26 @@ fun MainScreen(onLogout: () -> Unit) {
             composable(Screen.AITips.route) {
                 AITipsScreen()
             }
+            composable(Screen.Discover.route) {
+                DiscoverScreen(
+                    onUserClick = { user ->
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.set(SELECTED_DISCOVER_USER_KEY, user)
+                        navController.navigate(Screen.DiscoverProfile.route)
+                    }
+                )
+            }
+            composable(Screen.DiscoverProfile.route) {
+                val selectedUser =
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<DiscoverUser>(SELECTED_DISCOVER_USER_KEY)
+                DiscoverProfileScreen(
+                    selectedUser = selectedUser,
+                    onBack = { navController.popBackStack() }
+                )
+            }
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onLogout = onLogout,
@@ -161,3 +193,5 @@ fun MainScreen(onLogout: () -> Unit) {
         }
     }
 }
+
+private const val SELECTED_DISCOVER_USER_KEY = "selected_discover_user"

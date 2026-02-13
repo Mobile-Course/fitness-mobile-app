@@ -12,11 +12,16 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Query
+import com.fitness.app.data.model.DiscoverUserDto
 
 interface AuthApiService {
     @POST("api/auth/login") suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     @GET("api/auth/profile") suspend fun getProfile(): Response<UserProfileDto>
+
+    @GET("api/auth/search")
+    suspend fun searchUsers(@Query("q") query: String): Response<List<DiscoverUserDto>>
 
     @GET("api/auth/refresh") suspend fun refresh(): Response<Unit>
 
