@@ -1,243 +1,232 @@
-﻿package com.fitness.app.ui.screens.ai_tips
+package com.fitness.app.ui.screens.ai_tips
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
 import com.fitness.app.ui.components.FitTrackHeader
-import com.fitness.app.ui.components.GradientButton
-import com.fitness.app.ui.components.QuickQuestionButton
-import com.fitness.app.ui.components.TipCard
 
-/**
- * Composable for the AI Tips Page.
- * Design a conversational or dashboard-like UI for AI interactions here.
- */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AITipsScreen(
     viewModel: AITipsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val bgColor = MaterialTheme.colorScheme.background
-    val accentDark = MaterialTheme.colorScheme.onBackground
-    val focusManager = LocalFocusManager.current
-    val interactionSource = remember { MutableInteractionSource() }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        viewModel.sendInitialQuestionIfNeeded()
+    }
+
+    LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.content) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.lastIndex)
+        }
+    }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(bgColor)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null
-            ) {
-                focusManager.clearFocus()
-            }
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
-        // Minimized FitTrack branded header
-        FitTrackHeader()
-
-        // MAIN CONTENT
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Ask AI Coach Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Header Area
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                         // You could add an icon here if available, e.g., Icon(Icons.Default.Star, ...)
-                        Text(
-                            text = "ג¨ Ask AI Coach",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = accentDark
-                            )
-                        )
-                    }
-
-                    Text(
-                        text = "Get personalized fitness advice powered by AI",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = accentDark.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(bottom = 16.dp)
+        FitTrackHeader(
+            actions = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
                     )
+                    Text(
+                        text = " Ask AI Coach",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        )
 
-                    // Input Row
+        if (uiState.error != null) {
+            Text(
+                text = uiState.error ?: "",
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+        }
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val visibleMessages =
+                uiState.messages.filterNot { message ->
+                    message.role == ChatRole.ASSISTANT && message.content.isBlank()
+                }
+
+            items(visibleMessages, key = { it.id }) { message ->
+                ChatBubble(message = message)
+            }
+
+            if (uiState.isStreaming) {
+                item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.Start
                     ) {
-                        OutlinedTextField(
-                            value = uiState.query,
-                            onValueChange = { viewModel.onQueryChanged(it) },
-                            placeholder = {
-                                Text(
-                                    text = "Ask about workouts, nutrition...",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = MaterialTheme.shapes.small,
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = accentDark,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                cursorColor = accentDark,
-                                focusedTextColor = Color.Black,
-                                unfocusedTextColor = Color.Black
-                            )
-                        )
-
-                        GradientButton(
-                            onClick = { viewModel.getAITip() },
-                            enabled = uiState.query.isNotBlank() && !uiState.isGenerating && uiState.aiResponse == null,
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier
-                                .size(56.dp), // Adjust size to match text field height roughly
-                            shape = MaterialTheme.shapes.small
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFFEFEFF7)
                         ) {
-                            Text(text = "ג₪", fontSize = 20.sp, color = Color.White)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                Text(
+                                    text = " Thinking...",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
-                    }
-                    
-                    if (uiState.error != null) {
-                        Text(
-                            text = uiState.error ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // AI Response Display (Moved here)
-                    if (uiState.isGenerating) {
-                        CircularProgressIndicator(color = accentDark, modifier = Modifier.align(Alignment.CenterHorizontally))
-                    }
-
-                    uiState.aiResponse?.let { response ->
-                         Text(
-                            text = response,
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = accentDark,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Today's Tips Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                Text(
-                    text = "Today's Tips",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = accentDark
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = uiState.query,
+                onValueChange = viewModel::onQueryChanged,
+                modifier = Modifier.weight(1f).height(48.dp),
+                placeholder = {
+                    Text(
+                        text = "Ask about workouts, nutrition, recovery...",
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp)
                     )
+                },
+                shape = RoundedCornerShape(14.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TipCard(
-                icon = Icons.Default.FitnessCenter, // Placeholder icon
-                title = "Progressive Overload",
-                tag = "workout",
-                description = "Increase your weights by 2.5-5% each week to continuously challenge your muscles and promote growth.",
-                accentColor = accentDark
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TipCard(
-                icon = Icons.Default.Restaurant, // Placeholder icon, need to ensure import
-                title = "Post-Workout Nutrition",
-                tag = "nutrition",
-                description = "Consume protein within 30-60 minutes after training to optimize muscle recovery and growth.",
-                accentColor = accentDark
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Quick Questions Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+            IconButton(
+                onClick = viewModel::sendCurrentQuery,
+                enabled = uiState.query.isNotBlank() && !uiState.isStreaming
             ) {
-                Text(
-                    text = "Quick Questions",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = accentDark
-                    )
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = "Send",
+                    tint = if (uiState.query.isNotBlank() && !uiState.isStreaming) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        Color.Gray
+                    }
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val quickQuestions = listOf(
-                "Best exercises for abs?",
-                "How much protein do I need?",
-                "Tips for better sleep",
-                "How to stay motivated?"
-            )
-
-            quickQuestions.forEach { question ->
-                QuickQuestionButton(
-                    text = question,
-                    onClick = {
-                        viewModel.onQueryChanged(question)
-                        viewModel.getAITip()
-                    },
-                    modifier = Modifier.align(Alignment.Start)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Hint: Display the AI response here
-            // Hint: Display the AI response here - MOVED ABOVE
         }
     }
 }
 
+@Composable
+private fun ChatBubble(message: ChatMessage) {
+    val isUser = message.role == ChatRole.USER
+    val isHebrew = containsHebrew(message.content)
+    val formattedText = toBoldAnnotatedString(message.content)
 
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+    ) {
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = if (isUser) Color(0xFF5A67D8) else Color(0xFFEFEFF7)
+        ) {
+            Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Text(
+                    text = formattedText,
+                    color = if (isUser) Color.White else Color(0xFF111827),
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            textDirection = if (isHebrew) TextDirection.Rtl else TextDirection.Ltr
+                        )
+                )
+            }
+        }
+    }
+}
+
+private fun containsHebrew(text: String): Boolean {
+    return text.any { it in '\u0590'..'\u05FF' }
+}
+
+private fun toBoldAnnotatedString(text: String): AnnotatedString {
+    if (!text.contains("**")) return AnnotatedString(text)
+
+    return buildAnnotatedString {
+        var cursor = 0
+        while (cursor < text.length) {
+            val open = text.indexOf("**", cursor)
+            if (open == -1) {
+                append(text.substring(cursor))
+                break
+            }
+
+            append(text.substring(cursor, open))
+            val close = text.indexOf("**", open + 2)
+            if (close == -1) {
+                append(text.substring(open))
+                break
+            }
+
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                append(text.substring(open + 2, close))
+            }
+            cursor = close + 2
+        }
+    }
+}
