@@ -1,48 +1,108 @@
 package com.fitness.app.ui.screens.ai_tips
 
+import androidx.lifecycle.viewModelScope
+import com.fitness.app.data.repository.CoachRepository
 import com.fitness.app.ui.base.BaseViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.launch
 
-/**
- * UI State for the AI Tips Screen.
- * Use this to keep track of the AI's response, loading states, and user input.
- */
-data class AITipsUiState(
-    val query: String = "",
-    val aiResponse: String? = null,
-    val isGenerating: Boolean = false,
-    val error: String? = null
+enum class ChatRole {
+    USER,
+    ASSISTANT
+}
+
+data class ChatMessage(
+    val id: Long,
+    val role: ChatRole,
+    val content: String
 )
 
-/**
- * ViewModel for the AI Tips Screen.
- * Handle your AI integration logic here (e.g., calling Gemini API or a backend).
- */
-class AITipsViewModel : BaseViewModel<AITipsUiState>(AITipsUiState()) {
+data class AITipsUiState(
+    val query: String = "",
+    val messages: List<ChatMessage> = emptyList(),
+    val isStreaming: Boolean = false,
+    val error: String? = null,
+    val initialQuestionSent: Boolean = false
+)
 
-    /**
-     * Update the user's question or query for the AI.
-     */
+class AITipsViewModel : BaseViewModel<AITipsUiState>(AITipsUiState()) {
+    private val coachRepository = CoachRepository()
+    private var streamJob: Job? = null
+
     fun onQueryChanged(newQuery: String) {
-        updateState { it.copy(query = newQuery, error = null, aiResponse = null) }
+        updateState { it.copy(query = newQuery, error = null) }
     }
 
-    /**
-     * Logical entry point to 'Ask the AI'.
-     * Implement your API calls or simulation here.
-     */
-    fun getAITip() {
-        if (uiState.value.query.isBlank()) {
-            updateState { it.copy(error = "Please ask something first!") }
-            return
+    fun sendInitialQuestionIfNeeded() {
+        if (uiState.value.initialQuestionSent) return
+        val question = "give me tips based on my profile and last workout"
+        updateState { it.copy(initialQuestionSent = true) }
+        sendQuestion(question)
+    }
+
+    fun sendCurrentQuery() {
+        sendQuestion(uiState.value.query)
+    }
+
+    private fun sendQuestion(rawQuestion: String) {
+        val question = rawQuestion.trim()
+        if (question.isBlank() || uiState.value.isStreaming) return
+
+        streamJob?.cancel()
+
+        val userMessage = ChatMessage(
+            id = System.currentTimeMillis(),
+            role = ChatRole.USER,
+            content = question
+        )
+        val assistantMessage = ChatMessage(
+            id = userMessage.id + 1,
+            role = ChatRole.ASSISTANT,
+            content = ""
+        )
+
+        updateState {
+            it.copy(
+                query = "",
+                error = null,
+                isStreaming = true,
+                messages = it.messages + userMessage + assistantMessage
+            )
         }
 
-        // 1. Show loading/generating state
-        updateState { it.copy(isGenerating = true, aiResponse = null) }
+        streamJob = viewModelScope.launch {
+            coachRepository.askStream(question)
+                .catch { throwable ->
+                    updateState {
+                        it.copy(
+                            isStreaming = false,
+                            error = throwable.message ?: "Failed to fetch AI tips"
+                        )
+                    }
+                }
+                .onCompletion {
+                    updateState { state -> state.copy(isStreaming = false) }
+                }
+                .collect { chunk ->
+                    updateState { state ->
+                        val updated = state.messages.toMutableList()
+                        val lastAssistantIndex = updated.indexOfLast { msg -> msg.role == ChatRole.ASSISTANT }
+                        if (lastAssistantIndex >= 0) {
+                            val current = updated[lastAssistantIndex]
+                            val mergedContent = mergeChunk(current.content, chunk)
+                            updated[lastAssistantIndex] = current.copy(content = mergedContent)
+                        }
+                        state.copy(messages = updated)
+                    }
+                }
+        }
+    }
 
-        // 2. Integration Tip: Call your AI service here (e.g. Gemini, OpenAI, etc.)
-        // GlobalScope.launch { ... } or viewModelScope.launch { ... }
-        
-        // 3. For now, we stub a success case
-        updateState { it.copy(isGenerating = false, aiResponse = "Here is your personalized fitness tip...") }
+    private fun mergeChunk(existing: String, incoming: String): String {
+        if (incoming.isBlank()) return existing
+        if (incoming.startsWith(existing)) return incoming
+        return existing + incoming
     }
 }
