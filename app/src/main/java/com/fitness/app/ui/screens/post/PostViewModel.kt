@@ -220,7 +220,7 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
             val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
             if (bytes.size.toLong() > maxUploadBytes) return null
             val body = bytes.toRequestBody(mimeType.toMediaType())
-            MultipartBody.Part.createFormData("file", name, body)
+            MultipartBody.Part.createFormData("files", name, body)
         } catch (_: FileNotFoundException) {
             null
         } catch (_: Exception) {
