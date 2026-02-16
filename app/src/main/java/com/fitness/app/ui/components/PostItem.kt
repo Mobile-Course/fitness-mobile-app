@@ -228,7 +228,7 @@ fun PostItem(
                                     else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Like",
                             tint =
-                                    if (isLiked) MaterialTheme.colorScheme.primary
+                                    if (isLiked) Color.Red
                                     else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(22.dp)
                     )
@@ -253,8 +253,9 @@ fun PostItem(
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                        text = "${(post.comments ?: emptyList()).size}",
+                        text = "${post.commentsNumber}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                 )

@@ -41,6 +41,7 @@ data class Post(
         val pictures: List<String>?,
         val likes: List<Like>?,
         val likeNumber: Int,
+        val commentsNumber: Int = 0,
         val workoutDetails: WorkoutDetails?,
         val author: Author,
         val comments: List<Comment>?,

@@ -34,6 +34,7 @@ data class PostUiState(
     val isPosting: Boolean = false,
     val error: String? = null,
     val selectedImageUri: android.net.Uri? = null,
+    val existingImageUrl: String? = null,
     val isEditing: Boolean = false,
     val editPostId: String? = null
 )
@@ -99,6 +100,7 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                             calories = post.workoutDetails?.calories?.toString() ?: "",
                             subjectiveFeedbackFeelings = post.workoutDetails?.subjectiveFeedbackFeelings ?: "",
                             personalGoals = post.workoutDetails?.personalGoals ?: "",
+                            existingImageUrl = post.src ?: post.pictures?.firstOrNull(),
                             isEditing = true,
                             editPostId = post.id
                         )
