@@ -33,7 +33,9 @@ data class PostUiState(
     val currentStep: Int = 1,
     val isPosting: Boolean = false,
     val error: String? = null,
-    val selectedImageUri: android.net.Uri? = null
+    val selectedImageUri: android.net.Uri? = null,
+    val isEditing: Boolean = false,
+    val editPostId: String? = null
 )
 
 /**
@@ -80,6 +82,32 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
 
     fun onImageSelected(uri: android.net.Uri?) {
         updateState { it.copy(selectedImageUri = uri, error = null) }
+    }
+
+    fun loadPost(postId: String) {
+        if (uiState.value.isEditing && uiState.value.editPostId == postId) return
+        updateState { it.copy(isPosting = true, error = null) }
+        viewModelScope.launch {
+            postsRepository.getPost(postId)
+                .onSuccess { post ->
+                    updateState {
+                        PostUiState(
+                            title = post.title,
+                            description = post.description ?: "",
+                            workoutType = post.workoutDetails?.type ?: "",
+                            duration = post.workoutDetails?.duration?.toString() ?: "",
+                            calories = post.workoutDetails?.calories?.toString() ?: "",
+                            subjectiveFeedbackFeelings = post.workoutDetails?.subjectiveFeedbackFeelings ?: "",
+                            personalGoals = post.workoutDetails?.personalGoals ?: "",
+                            isEditing = true,
+                            editPostId = post.id
+                        )
+                    }
+                }
+                .onFailure {
+                    updateState { it.copy(isPosting = false, error = "Failed to load post") }
+                }
+        }
     }
 
     fun nextStep(): Boolean {
@@ -144,14 +172,17 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                     }
 
                     if (filePart == null) {
-                        postsRepository.createPost(
-                            CreatePostRequest(
-                                title = current.title.trim(),
-                                description = current.description,
-                                pictures = emptyList(),
-                                workoutDetails = workoutDetails
-                            )
+                        val request = CreatePostRequest(
+                            title = current.title.trim(),
+                            description = current.description,
+                            pictures = emptyList(),
+                            workoutDetails = workoutDetails
                         )
+                        if (current.isEditing && current.editPostId != null) {
+                            postsRepository.updatePost(current.editPostId, request)
+                        } else {
+                            postsRepository.createPost(request)
+                        }
                     } else {
                         val fields = mutableMapOf<String, RequestBody>()
                         fields["title"] = current.title.trim().toRequestBody("text/plain".toMediaType())
@@ -161,6 +192,11 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                                 gson.toJson(workoutDetails).toRequestBody("text/plain".toMediaType())
                         }
 
+                        // Multipart update not supported for text-only updates in this flow yet
+                        // Assumption: Edit mode currently supports text updates via JSON
+                        if (current.isEditing) {
+                             return@withContext Result.failure(Exception("Image update not supported in edit mode yet"))
+                        }
                         postsRepository.createPostMultipart(fields = fields, file = filePart)
                     }
                 }

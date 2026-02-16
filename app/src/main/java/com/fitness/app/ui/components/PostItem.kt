@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Send
@@ -48,7 +49,8 @@ fun PostItem(
         isAuthor: Boolean = false,
         onLikeClick: () -> Unit,
         onAddComment: (String) -> Unit,
-        onDeleteClick: () -> Unit = {}
+        onDeleteClick: () -> Unit = {},
+        onEditClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authorDisplayName = post.author.name?.takeIf { it.isNotBlank() } ?: post.author.username
@@ -105,6 +107,13 @@ fun PostItem(
                 }
                 if (isAuthor) {
                     Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = onEditClick) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Post",
+                            tint = Color.Gray
+                        )
+                    }
                     IconButton(onClick = onDeleteClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,

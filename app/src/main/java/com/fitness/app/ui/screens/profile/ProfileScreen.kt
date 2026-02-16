@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.filter
 fun ProfileScreen(
     onLogout: () -> Unit,
     onEditProfile: () -> Unit,
+    onEditPost: (String) -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -243,7 +244,8 @@ fun ProfileScreen(
                         isAuthor = isAuthor,
                         onLikeClick = { viewModel.toggleLike(post.id) },
                         onAddComment = { content -> viewModel.addComment(post.id, content) },
-                        onDeleteClick = { viewModel.deletePost(post.id) }
+                        onDeleteClick = { viewModel.deletePost(post.id) },
+                        onEditClick = { onEditPost(post.id) }
                     )
                 }
 

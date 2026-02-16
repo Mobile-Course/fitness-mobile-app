@@ -145,4 +145,30 @@ class PostsRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun getPost(id: String): Result<Post> {
+        return try {
+            val response = apiService.getPost(id)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error fetching post"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updatePost(id: String, request: CreatePostRequest): Result<Post> {
+        return try {
+            val response = apiService.updatePost(id, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error updating post"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -64,15 +64,26 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.content.FileProvider
 
+import androidx.compose.runtime.LaunchedEffect
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostScreen(
     onPostCreated: () -> Unit,
     onCancel: () -> Unit = {},
+    postId: String? = null,
     viewModel: PostViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    LaunchedEffect(postId) {
+        if (postId != null) {
+            viewModel.loadPost(postId)
+        } else {
+             if (uiState.isEditing) viewModel.resetForm()
+        }
+    }
 
     Scaffold(
         containerColor = Color(0xFFF0F4F8),
@@ -142,7 +153,7 @@ fun PostScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Share Post", fontWeight = FontWeight.Bold)
+                                Text(if (uiState.isEditing) "Update Post" else "Share Post", fontWeight = FontWeight.Bold)
                                 Icon(
                                     imageVector = Icons.Filled.Send,
                                     contentDescription = null,
@@ -234,7 +245,7 @@ private fun BasicsStep(
         )
 
     Text(
-        text = "Basics",
+        text = if (uiState.isEditing) "Edit Post" else "Basics",
         style = MaterialTheme.typography.titleMedium.copy(
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp

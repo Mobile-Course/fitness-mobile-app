@@ -60,4 +60,10 @@ interface PostsApiService {
 
     @retrofit2.http.DELETE("api/posts/{id}")
     suspend fun deletePost(@Path("id") postId: String): Response<Unit>
+
+    @GET("api/posts/{id}")
+    suspend fun getPost(@Path("id") id: String): Response<Post>
+
+    @PUT("api/posts/{id}")
+    suspend fun updatePost(@Path("id") id: String, @Body body: CreatePostRequest): Response<Post>
 }
