@@ -127,4 +127,22 @@ class PostsRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun deletePost(postId: String): Result<Unit> {
+        return try {
+            val response = apiService.deletePost(postId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message =
+                    errorBody?.takeIf { it.isNotBlank() }
+                        ?: response.message()
+                        ?: "Unknown error"
+                Result.failure(Exception("Error deleting post: $message"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

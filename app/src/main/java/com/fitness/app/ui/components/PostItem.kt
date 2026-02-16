@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Send
@@ -44,8 +45,10 @@ import java.time.format.DateTimeFormatter
 fun PostItem(
         post: Post,
         isLiked: Boolean,
+        isAuthor: Boolean = false,
         onLikeClick: () -> Unit,
-        onAddComment: (String) -> Unit
+        onAddComment: (String) -> Unit,
+        onDeleteClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authorDisplayName = post.author.name?.takeIf { it.isNotBlank() } ?: post.author.username
@@ -99,6 +102,16 @@ fun PostItem(
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.Gray
                     )
+                }
+                if (isAuthor) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Post",
+                            tint = Color.Gray
+                        )
+                    }
                 }
             }
 

@@ -57,4 +57,7 @@ interface PostsApiService {
             @PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>,
             @Part file: MultipartBody.Part? = null
     ): Response<Post>
+
+    @retrofit2.http.DELETE("api/posts/{id}")
+    suspend fun deletePost(@Path("id") postId: String): Response<Unit>
 }

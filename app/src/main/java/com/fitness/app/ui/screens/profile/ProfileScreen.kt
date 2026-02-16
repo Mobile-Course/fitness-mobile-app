@@ -235,11 +235,15 @@ fun ProfileScreen(
                     val isLikedByUser =
                         currentUsername != null &&
                             post.likes?.any { it.username == currentUsername } == true
+                    val isAuthor = currentUsername != null && post.author.username == currentUsername
+
                     PostItem(
                         post = post,
                         isLiked = isLikedByUser || likedPostIds.contains(post.id),
+                        isAuthor = isAuthor,
                         onLikeClick = { viewModel.toggleLike(post.id) },
-                        onAddComment = { content -> viewModel.addComment(post.id, content) }
+                        onAddComment = { content -> viewModel.addComment(post.id, content) },
+                        onDeleteClick = { viewModel.deletePost(post.id) }
                     )
                 }
 

@@ -294,6 +294,27 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 }
         }
     }
+
+    fun deletePost(postId: String) {
+        viewModelScope.launch {
+            val result = postsRepository.deletePost(postId)
+            result
+                .onSuccess {
+                    _posts.value = _posts.value.filter { it.id != postId }
+                    updateState { current ->
+                        current.copy(
+                            profile =
+                                current.profile.copy(
+                                    posts = (current.profile.posts - 1).coerceAtLeast(0)
+                                )
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _postsError.value = "Failed to delete post: ${e.message}"
+                }
+        }
+    }
 }
 
 private data class ProfileSessionFields(
