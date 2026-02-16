@@ -36,6 +36,14 @@ class FeedViewModel : ViewModel() {
 
     init {
         loadPosts()
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.refreshFeed.collect { shouldRefresh ->
+                if (shouldRefresh) {
+                    refresh()
+                    com.fitness.app.utils.DataInvalidator.refreshFeed.value = false
+                }
+            }
+        }
     }
 
     fun loadPosts() {

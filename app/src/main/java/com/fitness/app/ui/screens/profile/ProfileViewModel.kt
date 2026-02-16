@@ -110,6 +110,15 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 refreshPosts()
             }
         }
+
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.refreshProfile.collect { shouldRefresh ->
+                if (shouldRefresh) {
+                    refreshPosts()
+                    com.fitness.app.utils.DataInvalidator.refreshProfile.value = false
+                }
+            }
+        }
     }
 
     fun logout(context: Context, onLoggedOut: () -> Unit) {
@@ -309,6 +318,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                                 )
                         )
                     }
+                    com.fitness.app.utils.DataInvalidator.refreshFeed.value = true
                 }
                 .onFailure { e ->
                     _postsError.value = "Failed to delete post: ${e.message}"

@@ -159,7 +159,11 @@ fun MainScreen(onLogout: () -> Unit) {
                 PostScreen(
                     onPostCreated = {
                         navController.navigate(Screen.Feed.route) {
-                            popUpTo(Screen.Feed.route) { inclusive = true }
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     },
                     onCancel = {

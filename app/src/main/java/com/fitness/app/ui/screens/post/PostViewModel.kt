@@ -167,6 +167,8 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
 
             result.fold(
                 onSuccess = {
+                    com.fitness.app.utils.DataInvalidator.refreshProfile.value = true
+                    com.fitness.app.utils.DataInvalidator.refreshFeed.value = true
                     updateState { PostUiState() }
                     onSuccess()
                 },
