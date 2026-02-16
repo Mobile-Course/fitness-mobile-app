@@ -171,4 +171,22 @@ class PostsRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun updatePostMultipart(id: String, fields: Map<String, RequestBody>, file: MultipartBody.Part?): Result<Post> {
+        return try {
+            val response = apiService.updatePostMultipart(id, fields, file)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message =
+                    errorBody?.takeIf { it.isNotBlank() }
+                        ?: response.message()
+                        ?: "Unknown error"
+                Result.failure(Exception("Error updating post with image: $message"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

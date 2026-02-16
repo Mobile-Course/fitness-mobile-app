@@ -66,4 +66,12 @@ interface PostsApiService {
 
     @PUT("api/posts/{id}")
     suspend fun updatePost(@Path("id") id: String, @Body body: CreatePostRequest): Response<Post>
+
+    @Multipart
+    @PUT("api/posts/{id}")
+    suspend fun updatePostMultipart(
+            @Path("id") id: String,
+            @PartMap fields: Map<String, @JvmSuppressWildcards RequestBody>,
+            @Part file: MultipartBody.Part? = null
+    ): Response<Post>
 }

@@ -192,12 +192,12 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                                 gson.toJson(workoutDetails).toRequestBody("text/plain".toMediaType())
                         }
 
-                        // Multipart update not supported for text-only updates in this flow yet
-                        // Assumption: Edit mode currently supports text updates via JSON
-                        if (current.isEditing) {
-                             return@withContext Result.failure(Exception("Image update not supported in edit mode yet"))
+                        // Multipart update
+                        if (current.isEditing && current.editPostId != null) {
+                             postsRepository.updatePostMultipart(current.editPostId, fields, filePart)
+                        } else {
+                             postsRepository.createPostMultipart(fields = fields, file = filePart)
                         }
-                        postsRepository.createPostMultipart(fields = fields, file = filePart)
                     }
                 }
 
