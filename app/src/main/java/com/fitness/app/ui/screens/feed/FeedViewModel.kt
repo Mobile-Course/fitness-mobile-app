@@ -1,6 +1,5 @@
 package com.fitness.app.ui.screens.feed
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fitness.app.auth.UserSession
 import com.fitness.app.data.model.Like
@@ -9,34 +8,35 @@ import com.fitness.app.data.model.Author
 import com.fitness.app.data.model.Comment
 import com.fitness.app.data.repository.PostsRepository
 import com.fitness.app.network.NetworkConfig
+import com.fitness.app.ui.base.BaseViewModel
 import java.time.Instant
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 
-class FeedViewModel : ViewModel() {
+data class FeedUiState(
+    val posts: List<Post> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val likedPostIds: Set<String> = emptySet(),
+    val currentUsername: String? = null
+)
+
+class FeedViewModel : BaseViewModel<FeedUiState>(FeedUiState()) {
     private val repository = PostsRepository()
-
-    private val _posts = MutableStateFlow<List<Post>>(emptyList())
-    val posts: StateFlow<List<Post>> = _posts
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
-
-    private val _likedPostIds = MutableStateFlow<Set<String>>(emptySet())
-    val likedPostIds: StateFlow<Set<String>> = _likedPostIds
-    val currentUsername: StateFlow<String?> = UserSession.username
 
     private var currentPage = 1
     private var isLastPage = false
-    private val limit = 3
+    private val limit = 5
 
     init {
+        // Sync currentUsername from UserSession
+        viewModelScope.launch {
+            UserSession.username.collect { username ->
+                updateState { it.copy(currentUsername = username) }
+            }
+        }
+
         loadPosts()
         viewModelScope.launch {
             com.fitness.app.utils.DataInvalidator.refreshFeed.collect { shouldRefresh ->
@@ -46,13 +46,50 @@ class FeedViewModel : ViewModel() {
                 }
             }
         }
+
+        // Listen for individual post updates (cross-screen sync)
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.postUpdates.collect { updatedPost ->
+                updateState { state ->
+                    val hasPost = state.posts.any { it.id == updatedPost.id }
+                    if (!hasPost) return@updateState state
+                    
+                    val updatedLikedPostIds = state.likedPostIds.toMutableSet()
+                    if (updatedPost.isLikedByMe) {
+                        updatedLikedPostIds.add(updatedPost.id)
+                    } else {
+                        updatedLikedPostIds.remove(updatedPost.id)
+                    }
+
+                    state.copy(
+                        posts = state.posts.map { post ->
+                            if (post.id == updatedPost.id) updatedPost else post
+                        },
+                        likedPostIds = updatedLikedPostIds
+                    )
+                }
+            }
+        }
+
+        // Listen for post deletions (cross-screen sync)
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.postDeletions.collect { deletedPostId ->
+                updateState { state ->
+                    val hasPost = state.posts.any { it.id == deletedPostId }
+                    if (!hasPost) return@updateState state
+                    
+                    state.copy(
+                        posts = state.posts.filter { it.id != deletedPostId }
+                    )
+                }
+            }
+        }
     }
 
     fun loadPosts() {
-        if (_isLoading.value || isLastPage) return
+        if (uiState.value.isLoading || isLastPage) return
 
-        _isLoading.value = true
-        _error.value = null
+        updateState { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
             try {
@@ -62,25 +99,18 @@ class FeedViewModel : ViewModel() {
                         .onSuccess { response ->
                             val items = response.items
                             
-                            // Fetch details for each post in parallel to get likes/comments
-                            val detailedPosts = items.map { post ->
-                                async {
-                                    try {
-                                        val detailResult = repository.getPost(post.id)
-                                        detailResult.getOrNull() ?: post
-                                    } catch (e: Exception) {
-                                        post
-                                    }
-                                }
-                            }.awaitAll()
-
                             android.util.Log.d(
                                     "FeedViewModel",
                                     "Success: Received ${items.size} items"
                             )
-                            val currentList = _posts.value.toMutableList()
-                            currentList.addAll(detailedPosts)
-                            _posts.value = currentList
+                            updateState { state ->
+                                val existingIds = state.posts.map { it.id }.toSet()
+                                val newItems = items.filter { it.id !in existingIds }
+                                state.copy(
+                                    posts = state.posts + newItems,
+                                    isLoading = false
+                                )
+                            }
 
                             currentPage++
                             isLastPage = items.size < limit
@@ -95,13 +125,11 @@ class FeedViewModel : ViewModel() {
                                     "Error fetching posts: ${e.message}",
                                     e
                             )
-                            _error.value = e.message
+                            updateState { it.copy(error = e.message, isLoading = false) }
                         }
             } catch (e: Exception) {
                 android.util.Log.e("FeedViewModel", "Unexpected error: ${e.message}", e)
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
+                updateState { it.copy(error = e.message, isLoading = false) }
             }
         }
     }
@@ -109,19 +137,21 @@ class FeedViewModel : ViewModel() {
     fun refresh() {
         currentPage = 1
         isLastPage = false
-        _posts.value = emptyList()
+        updateState { it.copy(posts = emptyList()) }
         loadPosts()
     }
 
     fun toggleLike(postId: String) {
         viewModelScope.launch {
-            val currentPosts = _posts.value
+            val currentState = uiState.value
+            val currentPosts = currentState.posts
             val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
 
-            val username = currentUsername.value
+            val username = currentState.currentUsername
             val wasLiked =
                     (username != null && target.likes?.any { it.username == username } == true) ||
-                            _likedPostIds.value.contains(postId)
+                            target.isLikedByMe ||
+                            currentState.likedPostIds.contains(postId)
 
             val optimisticLikes =
                     if (username == null) target.likes
@@ -142,15 +172,18 @@ class FeedViewModel : ViewModel() {
             val optimisticPost =
                     target.copy(
                             likes = optimisticLikes,
-                            likeNumber = optimisticLikeNumber
+                            likeNumber = optimisticLikeNumber,
+                            isLikedByMe = !wasLiked
                     )
 
-            _posts.value =
-                    currentPosts.map { post -> if (post.id == postId) optimisticPost else post }
-
-            val optimisticSet = _likedPostIds.value.toMutableSet()
-            if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
-            _likedPostIds.value = optimisticSet
+            updateState { state ->
+                val optimisticSet = state.likedPostIds.toMutableSet()
+                if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
+                state.copy(
+                    posts = state.posts.map { post -> if (post.id == postId) optimisticPost else post },
+                    likedPostIds = optimisticSet
+                )
+            }
 
             android.util.Log.d(
                     "FeedViewModel",
@@ -159,24 +192,30 @@ class FeedViewModel : ViewModel() {
             val result = repository.likeOrUnlikePost(postId)
             result
                     .onSuccess { updatedPost ->
-                        _posts.value =
-                                _posts.value.map { post ->
+                        updateState { state ->
+                            val next = state.likedPostIds.toMutableSet()
+                            if (username != null) {
+                                val serverLiked =
+                                        updatedPost.likes?.any { it.username == username } == true
+                                if (serverLiked) next.add(postId) else next.remove(postId)
+                            }
+                            state.copy(
+                                posts = state.posts.map { post ->
                                     if (post.id == updatedPost.id) updatedPost else post
-                                }
-
-                        if (username != null) {
-                            val serverLiked =
-                                    updatedPost.likes?.any { it.username == username } == true
-                            val next = _likedPostIds.value.toMutableSet()
-                            if (serverLiked) next.add(postId) else next.remove(postId)
-                            _likedPostIds.value = next
+                                },
+                                likedPostIds = next
+                            )
                         }
                     }
                     .onFailure { e ->
-                        _posts.value = currentPosts
-                        _likedPostIds.value =
-                                if (wasLiked) _likedPostIds.value + postId
-                                else _likedPostIds.value - postId
+                        updateState { state ->
+                            val revertedSet = state.likedPostIds.toMutableSet()
+                            if (wasLiked) revertedSet.add(postId) else revertedSet.remove(postId)
+                            state.copy(
+                                posts = currentPosts,
+                                likedPostIds = revertedSet
+                            )
+                        }
                         android.util.Log.e(
                                 "FeedViewModel",
                                 "Error liking post: ${e.message}",
@@ -190,10 +229,10 @@ class FeedViewModel : ViewModel() {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val currentPosts = _posts.value
+            val currentPosts = uiState.value.posts
             val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
 
-            val username = currentUsername.value ?: "me"
+            val username = uiState.value.currentUsername ?: "me"
             val optimisticComment =
                     Comment(
                             content = trimmed,
@@ -204,21 +243,24 @@ class FeedViewModel : ViewModel() {
                     (target.comments ?: emptyList()) + optimisticComment
             val optimisticPost =
                     target.copy(comments = optimisticComments)
-            _posts.value =
-                    currentPosts.map { post ->
-                        if (post.id == postId) optimisticPost else post
-                    }
+            
+            updateState { state ->
+                state.copy(
+                    posts = state.posts.map { post -> if (post.id == postId) optimisticPost else post }
+                )
+            }
 
             val result = repository.addComment(postId, trimmed)
             result
                     .onSuccess { updatedPost ->
-                        _posts.value =
-                                _posts.value.map { post ->
-                                    if (post.id == updatedPost.id) updatedPost else post
-                                }
+                        updateState { state ->
+                            state.copy(
+                                posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post }
+                            )
+                        }
                     }
                     .onFailure { e ->
-                        _posts.value = currentPosts
+                        updateState { it.copy(posts = currentPosts) }
                         android.util.Log.e(
                                 "FeedViewModel",
                                 "Error adding comment: ${e.message}",
@@ -232,8 +274,10 @@ class FeedViewModel : ViewModel() {
         viewModelScope.launch {
             repository.getPost(postId)
                 .onSuccess { updatedPost ->
-                    _posts.value = _posts.value.map { post ->
-                        if (post.id == updatedPost.id) updatedPost else post
+                    updateState { state ->
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post }
+                        )
                     }
                 }
                 .onFailure { e ->

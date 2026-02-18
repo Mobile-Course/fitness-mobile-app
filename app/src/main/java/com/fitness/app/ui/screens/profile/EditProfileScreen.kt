@@ -29,7 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import com.fitness.app.ui.components.FitTrackHeader
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,7 +65,7 @@ fun EditProfileScreen(
     onProfileUpdated: () -> Unit,
     viewModel: EditProfileViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(EditProfileUiState())
     val fieldErrors = uiState.fieldErrors
     val context = LocalContext.current
     val scrollState = rememberScrollState()

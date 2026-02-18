@@ -10,12 +10,8 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.fitness.app.ui.screens.main.MainScreen
 import com.fitness.app.ui.theme.FitnessAppTheme
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.Lifecycle
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Observer
 
 class MainFragment : Fragment() {
     private val cameraViewModel: com.fitness.app.ui.viewmodels.CameraViewModel by activityViewModels()
@@ -51,14 +47,10 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-                cameraViewModel.shouldLaunchCamera.collect { shouldLaunch ->
-                    if (shouldLaunch) {
-                        launchCamera()
-                        cameraViewModel.clearCameraRequest()
-                    }
-                }
+        cameraViewModel.uiStateLiveData.observe(viewLifecycleOwner) { state ->
+            if (state.shouldLaunchCamera) {
+                launchCamera()
+                cameraViewModel.clearCameraRequest()
             }
         }
     }

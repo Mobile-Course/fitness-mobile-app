@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,7 +48,7 @@ fun ProfileScreen(
     onEditPost: (String) -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(ProfileUiState())
     val context = LocalContext.current
     var showSettingsMenu by rememberSaveable { mutableStateOf(false) }
     val bgColor = Color(0xFFF0F4F8)
@@ -60,11 +60,11 @@ fun ProfileScreen(
         uiState.profile.picture?.takeIf { it.isNotBlank() }
             ?: "https://ui-avatars.com/api/?name=${avatarFallbackSeed}&background=343E4E&color=ffffff"
 
-    val posts by viewModel.posts.collectAsState()
-    val isPostsLoading by viewModel.isPostsLoading.collectAsState()
-    val postsError by viewModel.postsError.collectAsState()
-    val likedPostIds by viewModel.likedPostIds.collectAsState()
-    val currentUsername by viewModel.currentUsername.collectAsState()
+    val posts = uiState.posts
+    val isPostsLoading = uiState.isPostsLoading
+    val postsError = uiState.postsError
+    val likedPostIds = uiState.likedPostIds
+    val currentUsername = uiState.currentUsername
     val listState = rememberLazyListState()
 
     val isScrollToEnd by remember {
@@ -77,11 +77,11 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(listState) {
-        snapshotFlow { isScrollToEnd to isPostsLoading }
-            .distinctUntilChanged()
-            .filter { (scrollToEnd, loading) -> scrollToEnd && !loading }
-            .collect { viewModel.loadPosts() }
+    // Trigger load more when scroll is at end and not already loading
+    LaunchedEffect(isScrollToEnd, isPostsLoading) {
+        if (isScrollToEnd && !isPostsLoading) {
+            viewModel.loadPosts()
+        }
     }
 
     Column(
@@ -235,8 +235,8 @@ fun ProfileScreen(
             } else {
                 items(posts, key = { it.id }) { post ->
                     val isLikedByUser =
-                        currentUsername != null &&
-                            post.likes?.any { it.username == currentUsername } == true
+                        (currentUsername != null && post.likes?.any { it.username == currentUsername } == true) ||
+                        (post.isLikedByMe)
                     val isAuthor = currentUsername != null && post.author.username == currentUsername
 
                     PostItem(

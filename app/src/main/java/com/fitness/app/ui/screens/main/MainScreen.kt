@@ -13,7 +13,10 @@ import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,9 +76,10 @@ sealed class BottomNavItem(
 }
 
 @Composable
-fun MainScreen(onLogout: () -> Unit) {
+fun MainScreen(onLogout: () -> Unit, viewModel: MainViewModel = viewModel()) {
     val navController = rememberNavController()
-    val forcedLogoutVersion by UserSession.forcedLogoutVersion.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(MainUiState())
+    val forcedLogoutVersion = uiState.forcedLogoutVersion
     val items = listOf(
         BottomNavItem.Feed,
         BottomNavItem.Post,

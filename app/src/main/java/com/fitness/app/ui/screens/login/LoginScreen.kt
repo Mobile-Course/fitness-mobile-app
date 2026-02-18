@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,8 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import android.content.Intent
 import android.net.Uri
-import com.fitness.app.auth.GoogleAuthCodeStore
 import com.fitness.app.ui.components.GradientButton
+import com.fitness.app.auth.GoogleAuthResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,9 +37,9 @@ fun LoginScreen(
         onNavigateToSignup: () -> Unit,
         viewModel: LoginViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(LoginUiState())
     val context = LocalContext.current
-    val googleResult by GoogleAuthCodeStore.result.collectAsState()
+    val googleResult = uiState.googleResult
 
     // Matching mockup colors
     val bgColor = MaterialTheme.colorScheme.background
@@ -59,8 +60,8 @@ fun LoginScreen(
                 context = context,
                 onSuccess = onLoginSuccess
             )
-            GoogleAuthCodeStore.clear()
-        } else if (result != null) {
+            viewModel.clearGoogleResult()
+        } else if (googleResult != null) {
             android.util.Log.d("LoginScreen", "Google result received. hasToken=false")
         }
     }

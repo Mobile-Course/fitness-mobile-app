@@ -1,14 +1,12 @@
 package com.fitness.app.ui.screens.signup
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.fitness.app.auth.UserSession
 import com.fitness.app.data.model.extractId
 import com.fitness.app.data.model.toUserEntity
+import com.fitness.app.ui.base.BaseViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class SignupUiState(
@@ -22,14 +20,7 @@ data class SignupUiState(
     val isLoading: Boolean = false
 )
 
-class SignupViewModel(application: Application) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow(SignupUiState())
-    val uiState = _uiState.asStateFlow()
-
-    private fun updateState(update: (SignupUiState) -> SignupUiState) {
-        _uiState.value = update(_uiState.value)
-    }
-
+class SignupViewModel : BaseViewModel<SignupUiState>(SignupUiState()) {
     private val authRepository = com.fitness.app.data.repository.AuthRepository()
 
 
@@ -49,7 +40,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         updateState { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    fun onCreateAccountClicked(onSuccess: () -> Unit) {
+    fun onCreateAccountClicked(context: Context, onSuccess: () -> Unit) {
         var hasError = false
         if (uiState.value.fullName.isBlank()) {
             updateState { it.copy(fullNameError = "Full name is required") }
@@ -91,7 +82,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
                     onSuccess = {
                         android.util.Log.d("SignupViewModel", "Signup successful. Attempting auto-login.")
                         // Auto-login after successful signup
-                        loginAfterSignup(onSuccess)
+                        loginAfterSignup(context, onSuccess)
                     },
                     onFailure = { error ->
                         android.util.Log.e("SignupViewModel", "Signup failed", error)
@@ -105,7 +96,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun loginAfterSignup(onSuccess: () -> Unit) {
+    private fun loginAfterSignup(context: Context, onSuccess: () -> Unit) {
         viewModelScope.launch {
              val loginResult = authRepository.login(uiState.value.email, uiState.value.password)
              loginResult.fold(
@@ -127,7 +118,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
                          )
                          
                          // Helper function to save to DB (similar to LoginViewModel)
-                         saveUserToDb(response)
+                         saveUserToDb(context, response)
                          
                          updateState { it.copy(isLoading = false) }
                          onSuccess()
@@ -142,10 +133,9 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun saveUserToDb(response: com.fitness.app.data.model.LoginResponse) {
+    private fun saveUserToDb(context: Context, response: com.fitness.app.data.model.LoginResponse) {
         viewModelScope.launch(Dispatchers.IO) {
              try {
-                val context = getApplication<Application>()
                 val dao = com.fitness.app.data.local.AppDatabase.getInstance(context).userDao()
                 
                 // Fetch profile to get full details for persistence, similar to LoginViewModel

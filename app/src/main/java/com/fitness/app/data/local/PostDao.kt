@@ -17,8 +17,20 @@ interface PostDao {
     @Query("SELECT * FROM posts ORDER BY createdAt DESC")
     suspend fun getAllPostsSnapshot(): List<PostEntity>
 
+    @Query("SELECT * FROM posts ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPagedPostsSnapshot(limit: Int, offset: Int): List<PostEntity>
+
+    @Query("SELECT * FROM posts WHERE authorId = :authorId ORDER BY createdAt DESC LIMIT :limit OFFSET :offset")
+    suspend fun getPagedPostsByAuthorSnapshot(authorId: String, limit: Int, offset: Int): List<PostEntity>
+
     @Query("SELECT MAX(lastUpdated) FROM posts")
     suspend fun getLastUpdated(): Long?
+
+    @Query("DELETE FROM posts WHERE id = :postId")
+    suspend fun deletePost(postId: String)
+
+    @Query("DELETE FROM posts WHERE authorId = :authorId")
+    suspend fun clearByAuthor(authorId: String)
 
     @Query("DELETE FROM posts")
     suspend fun clear()

@@ -40,6 +40,7 @@ data class Post(
         val src: String?,
         val pictures: List<String>?,
         val likes: List<Like>?,
+        val isLikedByMe: Boolean = false,
         val likeNumber: Int,
         val commentsNumber: Int = 0,
         val workoutDetails: WorkoutDetails?,

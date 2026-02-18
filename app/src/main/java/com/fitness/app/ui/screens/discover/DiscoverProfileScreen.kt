@@ -24,7 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -42,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.fitness.app.data.model.DiscoverUser
+import com.fitness.app.data.model.Post
 import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.PostItem
 import com.fitness.app.ui.screens.profile.StatCard
@@ -54,12 +55,12 @@ fun DiscoverProfileScreen(
     onBack: () -> Unit,
     viewModel: DiscoverProfileViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val posts by viewModel.posts.collectAsState()
-    val isPostsLoading by viewModel.isPostsLoading.collectAsState()
-    val postsError by viewModel.postsError.collectAsState()
-    val likedPostIds by viewModel.likedPostIds.collectAsState()
-    val currentUsername by viewModel.currentUsername.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(DiscoverProfileUiState())
+    val posts = uiState.posts
+    val isPostsLoading = uiState.isPostsLoading
+    val postsError = uiState.postsError
+    val likedPostIds = uiState.likedPostIds
+    val currentUsername = uiState.currentUsername
     val listState = rememberLazyListState()
 
     val bgColor = Color(0xFFF0F4F8)
@@ -79,11 +80,11 @@ fun DiscoverProfileScreen(
         }
     }
 
-    LaunchedEffect(listState) {
-        snapshotFlow { isScrollToEnd to isPostsLoading }
-            .distinctUntilChanged()
-            .filter { (scrollToEnd, loading) -> scrollToEnd && !loading }
-            .collect { viewModel.loadPosts() }
+    // Trigger load more when scroll is at end and not already loading
+    LaunchedEffect(isScrollToEnd, isPostsLoading) {
+        if (isScrollToEnd && !isPostsLoading) {
+            viewModel.loadPosts()
+        }
     }
 
     val avatarFallbackSeed =
@@ -196,10 +197,10 @@ fun DiscoverProfileScreen(
                     )
                 }
             } else {
-                items(posts, key = { it.id }) { post ->
+                items(posts, key = { it.id }) { post: Post ->
                     val isLikedByUser =
-                        currentUsername != null &&
-                            post.likes?.any { it.username == currentUsername } == true
+                        (currentUsername != null && post.likes?.any { it.username == currentUsername } == true) ||
+                        (post.isLikedByMe)
                     PostItem(
                         post = post,
                         isLiked = isLikedByUser || likedPostIds.contains(post.id),

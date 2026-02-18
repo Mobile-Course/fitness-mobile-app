@@ -12,6 +12,8 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,7 +34,8 @@ fun SignupScreen(
     onBackToLogin: () -> Unit,
     viewModel: SignupViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(SignupUiState())
+    val context = LocalContext.current
 
     val bgColor = MaterialTheme.colorScheme.background
     val cardBg = MaterialTheme.colorScheme.surface
@@ -236,9 +239,8 @@ fun SignupScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Create Account Button
                     GradientButton(
-                        onClick = { viewModel.onCreateAccountClicked(onSignupSuccess) },
+                        onClick = { viewModel.onCreateAccountClicked(context, onSignupSuccess) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),

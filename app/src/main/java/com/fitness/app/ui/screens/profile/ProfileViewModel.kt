@@ -42,29 +42,21 @@ data class ProfileUiState(
     val achievements: List<Achievement> = listOf(
         Achievement("Early Bird", "Complete 10 morning workouts", "Trophy")
     ),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val posts: List<Post> = emptyList(),
+    val isPostsLoading: Boolean = false,
+    val postsError: String? = null,
+    val likedPostIds: Set<String> = emptySet(),
+    val currentUsername: String? = null
 )
 
 class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
     private val authRepository = AuthRepository()
     private val postsRepository = PostsRepository()
 
-    private val _posts = MutableStateFlow<List<Post>>(emptyList())
-    val posts: StateFlow<List<Post>> = _posts
-
-    private val _isPostsLoading = MutableStateFlow(false)
-    val isPostsLoading: StateFlow<Boolean> = _isPostsLoading
-
-    private val _postsError = MutableStateFlow<String?>(null)
-    val postsError: StateFlow<String?> = _postsError
-
-    private val _likedPostIds = MutableStateFlow<Set<String>>(emptySet())
-    val likedPostIds: StateFlow<Set<String>> = _likedPostIds
-    val currentUsername: StateFlow<String?> = UserSession.username
-
     private var currentPage = 1
     private var isLastPage = false
-    private val limit = 3
+    private val limit = 5
     private var currentAuthorId: String? = null
 
     init {
@@ -96,7 +88,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                                     ?: current.profile.bio,
                             streak = fields.streak ?: current.profile.streak
                         )
-                    current.copy(profile = updatedProfile)
+                    current.copy(profile = updatedProfile, currentUsername = fields.username)
                 }
             }
         }
@@ -116,6 +108,44 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 if (shouldRefresh) {
                     refreshPosts()
                     com.fitness.app.utils.DataInvalidator.refreshProfile.value = false
+                }
+            }
+        }
+
+        // Listen for individual post updates (cross-screen sync)
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.postUpdates.collect { updatedPost ->
+                updateState { state ->
+                    val hasPost = state.posts.any { it.id == updatedPost.id }
+                    if (!hasPost) return@updateState state
+                    
+                    val updatedLikedPostIds = state.likedPostIds.toMutableSet()
+                    if (updatedPost.isLikedByMe) {
+                        updatedLikedPostIds.add(updatedPost.id)
+                    } else {
+                        updatedLikedPostIds.remove(updatedPost.id)
+                    }
+
+                    state.copy(
+                        posts = state.posts.map { post ->
+                            if (post.id == updatedPost.id) updatedPost else post
+                        },
+                        likedPostIds = updatedLikedPostIds
+                    )
+                }
+            }
+        }
+
+        // Listen for post deletions (cross-screen sync)
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.postDeletions.collect { deletedPostId ->
+                updateState { state ->
+                    val hasPost = state.posts.any { it.id == deletedPostId }
+                    if (!hasPost) return@updateState state
+                    
+                    state.copy(
+                        posts = state.posts.filter { it.id != deletedPostId }
+                    )
                 }
             }
         }
@@ -141,37 +171,40 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
 
     fun loadPosts() {
         val authorId = currentAuthorId ?: return
-        if (_isPostsLoading.value || isLastPage) return
+        if (uiState.value.isPostsLoading || isLastPage) return
 
-        _isPostsLoading.value = true
-        _postsError.value = null
+        updateState { it.copy(isPostsLoading = true, postsError = null) }
 
         viewModelScope.launch {
             try {
                 val result = postsRepository.getPostsByAuthor(authorId, currentPage, limit)
                 result
                     .onSuccess { response ->
-                        val currentList = _posts.value.toMutableList()
-                        currentList.addAll(response.items)
-                        _posts.value = currentList
-                        if (currentPage == 1) {
-                            val totalCount =
-                                if (response.total > 0) response.total else currentList.size
-                            updateState { current ->
-                                current.copy(profile = current.profile.copy(posts = totalCount))
-                            }
+                        updateState { current ->
+                            val existingIds = current.posts.map { it.id }.toSet()
+                            val newItems = response.items.filter { it.id !in existingIds }
+                            val updatedPosts = current.posts + newItems
+                            
+                            val nextProfile = if (currentPage == 1) {
+                                val totalCount = if (response.total > 0) response.total else updatedPosts.size
+                                current.profile.copy(posts = totalCount)
+                            } else current.profile
+
+                            current.copy(
+                                posts = updatedPosts,
+                                profile = nextProfile,
+                                isPostsLoading = false
+                            )
                         }
 
                         currentPage++
                         isLastPage = response.items.size < limit
                     }
                     .onFailure { e ->
-                        _postsError.value = e.message
+                        updateState { it.copy(postsError = e.message, isPostsLoading = false) }
                     }
             } catch (e: Exception) {
-                _postsError.value = e.message
-            } finally {
-                _isPostsLoading.value = false
+                updateState { it.copy(postsError = e.message, isPostsLoading = false) }
             }
         }
     }
@@ -179,7 +212,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
     fun refreshPosts() {
         currentPage = 1
         isLastPage = false
-        _posts.value = emptyList()
+        updateState { it.copy(posts = emptyList()) }
         loadPosts()
     }
 
@@ -205,13 +238,14 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
 
     fun toggleLike(postId: String) {
         viewModelScope.launch {
-            val currentPosts = _posts.value
+            val currentState = uiState.value
+            val currentPosts = currentState.posts
             val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
 
-            val username = currentUsername.value
+            val username = currentState.currentUsername
             val wasLiked =
                 (username != null && target.likes?.any { it.username == username } == true) ||
-                    _likedPostIds.value.contains(postId)
+                    currentState.likedPostIds.contains(postId)
 
             val optimisticLikes =
                 if (username == null) target.likes
@@ -235,34 +269,40 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                     likeNumber = optimisticLikeNumber
                 )
 
-            _posts.value =
-                currentPosts.map { post -> if (post.id == postId) optimisticPost else post }
-
-            val optimisticSet = _likedPostIds.value.toMutableSet()
-            if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
-            _likedPostIds.value = optimisticSet
+            updateState { state ->
+                val optimisticSet = state.likedPostIds.toMutableSet()
+                if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
+                state.copy(
+                    posts = state.posts.map { post -> if (post.id == postId) optimisticPost else post },
+                    likedPostIds = optimisticSet
+                )
+            }
 
             val result = postsRepository.likeOrUnlikePost(postId)
             result
                 .onSuccess { updatedPost ->
-                    _posts.value =
-                        _posts.value.map { post ->
-                            if (post.id == updatedPost.id) updatedPost else post
+                    updateState { state ->
+                        val next = state.likedPostIds.toMutableSet()
+                        if (username != null) {
+                            val serverLiked =
+                                updatedPost.likes?.any { it.username == username } == true
+                            if (serverLiked) next.add(postId) else next.remove(postId)
                         }
-
-                    if (username != null) {
-                        val serverLiked =
-                            updatedPost.likes?.any { it.username == username } == true
-                        val next = _likedPostIds.value.toMutableSet()
-                        if (serverLiked) next.add(postId) else next.remove(postId)
-                        _likedPostIds.value = next
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post },
+                            likedPostIds = next
+                        )
                     }
                 }
                 .onFailure {
-                    _posts.value = currentPosts
-                    _likedPostIds.value =
-                        if (wasLiked) _likedPostIds.value + postId
-                        else _likedPostIds.value - postId
+                    updateState { state ->
+                        val revertedSet = state.likedPostIds.toMutableSet()
+                        if (wasLiked) revertedSet.add(postId) else revertedSet.remove(postId)
+                        state.copy(
+                            posts = currentPosts,
+                            likedPostIds = revertedSet
+                        )
+                    }
                 }
         }
     }
@@ -271,10 +311,11 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
         val trimmed = content.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val currentPosts = _posts.value
+            val currentState = uiState.value
+            val currentPosts = currentState.posts
             val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
 
-            val username = currentUsername.value ?: "me"
+            val username = currentState.currentUsername ?: "me"
             val optimisticComment =
                 Comment(
                     content = trimmed,
@@ -285,21 +326,24 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 (target.comments ?: emptyList()) + optimisticComment
             val optimisticPost =
                 target.copy(comments = optimisticComments)
-            _posts.value =
-                currentPosts.map { post ->
-                    if (post.id == postId) optimisticPost else post
-                }
+            
+            updateState { state ->
+                state.copy(
+                    posts = state.posts.map { post -> if (post.id == postId) optimisticPost else post }
+                )
+            }
 
             val result = postsRepository.addComment(postId, trimmed)
             result
                 .onSuccess { updatedPost ->
-                    _posts.value =
-                        _posts.value.map { post ->
-                            if (post.id == updatedPost.id) updatedPost else post
-                        }
+                    updateState { state ->
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post }
+                        )
+                    }
                 }
                 .onFailure {
-                    _posts.value = currentPosts
+                    updateState { it.copy(posts = currentPosts) }
                 }
         }
     }
@@ -309,9 +353,9 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
             val result = postsRepository.deletePost(postId)
             result
                 .onSuccess {
-                    _posts.value = _posts.value.filter { it.id != postId }
                     updateState { current ->
                         current.copy(
+                            posts = current.posts.filter { it.id != postId },
                             profile =
                                 current.profile.copy(
                                     posts = (current.profile.posts - 1).coerceAtLeast(0)
@@ -321,7 +365,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                     com.fitness.app.utils.DataInvalidator.refreshFeed.value = true
                 }
                 .onFailure { e ->
-                    _postsError.value = "Failed to delete post: ${e.message}"
+                    updateState { it.copy(postsError = "Failed to delete post: ${e.message}") }
                 }
         }
     }
@@ -329,8 +373,10 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
         viewModelScope.launch {
             postsRepository.getPost(postId)
                 .onSuccess { updatedPost ->
-                    _posts.value = _posts.value.map { post ->
-                        if (post.id == updatedPost.id) updatedPost else post
+                    updateState { state ->
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post }
+                        )
                     }
                 }
                 .onFailure { e ->

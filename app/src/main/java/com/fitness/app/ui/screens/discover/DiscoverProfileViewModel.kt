@@ -1,8 +1,8 @@
 package com.fitness.app.ui.screens.discover
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fitness.app.auth.UserSession
+import com.fitness.app.ui.base.BaseViewModel
 import com.fitness.app.data.model.Author
 import com.fitness.app.data.model.Comment
 import com.fitness.app.data.model.DiscoverUser
@@ -19,46 +19,79 @@ import kotlinx.coroutines.launch
 data class DiscoverProfileUiState(
     val profile: UserProfile = UserProfile(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val posts: List<Post> = emptyList(),
+    val isPostsLoading: Boolean = false,
+    val postsError: String? = null,
+    val likedPostIds: Set<String> = emptySet(),
+    val currentUsername: String? = null
 )
 
-class DiscoverProfileViewModel : ViewModel() {
+class DiscoverProfileViewModel : BaseViewModel<DiscoverProfileUiState>(DiscoverProfileUiState()) {
     private val postsRepository = PostsRepository()
-
-    private val _uiState = MutableStateFlow(DiscoverProfileUiState())
-    val uiState: StateFlow<DiscoverProfileUiState> = _uiState.asStateFlow()
-
-    private val _posts = MutableStateFlow<List<Post>>(emptyList())
-    val posts: StateFlow<List<Post>> = _posts.asStateFlow()
-
-    private val _isPostsLoading = MutableStateFlow(false)
-    val isPostsLoading: StateFlow<Boolean> = _isPostsLoading.asStateFlow()
-
-    private val _postsError = MutableStateFlow<String?>(null)
-    val postsError: StateFlow<String?> = _postsError.asStateFlow()
-
-    private val _likedPostIds = MutableStateFlow<Set<String>>(emptySet())
-    val likedPostIds: StateFlow<Set<String>> = _likedPostIds.asStateFlow()
-
-    val currentUsername: StateFlow<String?> = UserSession.username
 
     private var currentPage = 1
     private var isLastPage = false
-    private val limit = 3
+    private val limit = 5
     private var currentAuthorId: String? = null
+
+    init {
+        viewModelScope.launch {
+            UserSession.username.collect { username ->
+                updateState { it.copy(currentUsername = username) }
+            }
+        }
+
+        // Listen for individual post updates (cross-screen sync)
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.postUpdates.collect { updatedPost ->
+                updateState { state ->
+                    val hasPost = state.posts.any { it.id == updatedPost.id }
+                    if (!hasPost) return@updateState state
+                    
+                    val updatedLikedPostIds = state.likedPostIds.toMutableSet()
+                    if (updatedPost.isLikedByMe) {
+                        updatedLikedPostIds.add(updatedPost.id)
+                    } else {
+                        updatedLikedPostIds.remove(updatedPost.id)
+                    }
+
+                    state.copy(
+                        posts = state.posts.map { post ->
+                            if (post.id == updatedPost.id) updatedPost else post
+                        },
+                        likedPostIds = updatedLikedPostIds
+                    )
+                }
+            }
+        }
+
+        // Listen for post deletions (cross-screen sync)
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.postDeletions.collect { deletedPostId ->
+                updateState { state ->
+                    val hasPost = state.posts.any { it.id == deletedPostId }
+                    if (!hasPost) return@updateState state
+                    
+                    state.copy(
+                        posts = state.posts.filter { it.id != deletedPostId }
+                    )
+                }
+            }
+        }
+    }
 
     fun initialize(user: DiscoverUser?) {
         if (user == null) {
-            _uiState.value = _uiState.value.copy(error = "User data is unavailable")
-            _postsError.value = "User data is unavailable"
+            updateState { it.copy(error = "User data is unavailable", postsError = "User data is unavailable") }
             return
         }
 
         if (currentAuthorId == user.id) return
 
         currentAuthorId = user.id
-        _uiState.value =
-            _uiState.value.copy(
+        updateState {
+            it.copy(
                 profile =
                     UserProfile(
                         name = user.displayName(),
@@ -72,57 +105,63 @@ class DiscoverProfileViewModel : ViewModel() {
                 isLoading = false,
                 error = null
             )
+        }
 
         refreshPosts()
     }
 
     fun loadPosts() {
         val authorId = currentAuthorId ?: return
-        if (_isPostsLoading.value || isLastPage) return
+        if (uiState.value.isPostsLoading || isLastPage) return
 
-        _isPostsLoading.value = true
-        _postsError.value = null
+        updateState { it.copy(isPostsLoading = true, postsError = null) }
 
         viewModelScope.launch {
             postsRepository.getPostsByAuthor(authorId, currentPage, limit)
                 .onSuccess { response ->
-                    val merged = _posts.value.toMutableList().apply { addAll(response.items) }
-                    _posts.value = merged
+                    updateState { current ->
+                        val existingIds = current.posts.map { it.id }.toSet()
+                        val newItems = response.items.filter { it.id !in existingIds }
+                        val merged = current.posts + newItems
+                        
+                        val nextProfile = if (currentPage == 1) {
+                            val totalPosts = if (response.total > 0) response.total else merged.size
+                            current.profile.copy(posts = totalPosts)
+                        } else current.profile
 
-                    if (currentPage == 1) {
-                        val totalPosts = if (response.total > 0) response.total else merged.size
-                        _uiState.value =
-                            _uiState.value.copy(
-                                profile = _uiState.value.profile.copy(posts = totalPosts)
-                            )
+                        current.copy(
+                            posts = merged,
+                            profile = nextProfile,
+                            isPostsLoading = false
+                        )
                     }
 
                     currentPage++
                     isLastPage = response.items.size < limit
                 }
                 .onFailure { throwable ->
-                    _postsError.value = throwable.message ?: "Failed to load posts"
+                    updateState { it.copy(postsError = throwable.message ?: "Failed to load posts", isPostsLoading = false) }
                 }
-            _isPostsLoading.value = false
         }
     }
 
     fun refreshPosts() {
         currentPage = 1
         isLastPage = false
-        _posts.value = emptyList()
+        updateState { it.copy(posts = emptyList()) }
         loadPosts()
     }
 
     fun toggleLike(postId: String) {
         viewModelScope.launch {
-            val currentPosts = _posts.value
+            val currentState = uiState.value
+            val currentPosts = currentState.posts
             val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
 
-            val username = currentUsername.value
+            val username = currentState.currentUsername
             val wasLiked =
                 (username != null && target.likes?.any { it.username == username } == true) ||
-                    _likedPostIds.value.contains(postId)
+                    currentState.likedPostIds.contains(postId)
 
             val optimisticLikes =
                 if (username == null) target.likes
@@ -146,32 +185,38 @@ class DiscoverProfileViewModel : ViewModel() {
                     likeNumber = optimisticLikeNumber
                 )
 
-            _posts.value =
-                currentPosts.map { post -> if (post.id == postId) optimisticPost else post }
-
-            val optimisticSet = _likedPostIds.value.toMutableSet()
-            if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
-            _likedPostIds.value = optimisticSet
+            updateState { state ->
+                val optimisticSet = state.likedPostIds.toMutableSet()
+                if (wasLiked) optimisticSet.remove(postId) else optimisticSet.add(postId)
+                state.copy(
+                    posts = state.posts.map { post -> if (post.id == postId) optimisticPost else post },
+                    likedPostIds = optimisticSet
+                )
+            }
 
             postsRepository.likeOrUnlikePost(postId)
                 .onSuccess { updatedPost ->
-                    _posts.value =
-                        _posts.value.map { post ->
-                            if (post.id == updatedPost.id) updatedPost else post
+                    updateState { state ->
+                        val next = state.likedPostIds.toMutableSet()
+                        if (username != null) {
+                            val serverLiked = updatedPost.likes?.any { it.username == username } == true
+                            if (serverLiked) next.add(postId) else next.remove(postId)
                         }
-
-                    if (username != null) {
-                        val serverLiked = updatedPost.likes?.any { it.username == username } == true
-                        val next = _likedPostIds.value.toMutableSet()
-                        if (serverLiked) next.add(postId) else next.remove(postId)
-                        _likedPostIds.value = next
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post },
+                            likedPostIds = next
+                        )
                     }
                 }
                 .onFailure {
-                    _posts.value = currentPosts
-                    _likedPostIds.value =
-                        if (wasLiked) _likedPostIds.value + postId
-                        else _likedPostIds.value - postId
+                    updateState { state ->
+                        val revertedSet = state.likedPostIds.toMutableSet()
+                        if (wasLiked) revertedSet.add(postId) else revertedSet.remove(postId)
+                        state.copy(
+                            posts = currentPosts,
+                            likedPostIds = revertedSet
+                        )
+                    }
                 }
         }
     }
@@ -181,10 +226,11 @@ class DiscoverProfileViewModel : ViewModel() {
         if (trimmed.isEmpty()) return
 
         viewModelScope.launch {
-            val currentPosts = _posts.value
+            val currentState = uiState.value
+            val currentPosts = currentState.posts
             val target = currentPosts.firstOrNull { it.id == postId } ?: return@launch
 
-            val username = currentUsername.value ?: "me"
+            val username = currentState.currentUsername ?: "me"
             val optimisticComment =
                 Comment(
                     content = trimmed,
@@ -194,18 +240,22 @@ class DiscoverProfileViewModel : ViewModel() {
             val optimisticPost =
                 target.copy(comments = (target.comments ?: emptyList()) + optimisticComment)
 
-            _posts.value =
-                currentPosts.map { post -> if (post.id == postId) optimisticPost else post }
+            updateState { state ->
+                state.copy(
+                    posts = state.posts.map { post -> if (post.id == postId) optimisticPost else post }
+                )
+            }
 
             postsRepository.addComment(postId, trimmed)
                 .onSuccess { updatedPost ->
-                    _posts.value =
-                        _posts.value.map { post ->
-                            if (post.id == updatedPost.id) updatedPost else post
-                        }
+                    updateState { state ->
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post }
+                        )
+                    }
                 }
                 .onFailure {
-                    _posts.value = currentPosts
+                    updateState { it.copy(posts = currentPosts) }
                 }
 
         }
@@ -215,8 +265,10 @@ class DiscoverProfileViewModel : ViewModel() {
         viewModelScope.launch {
             postsRepository.getPost(postId)
                 .onSuccess { updatedPost ->
-                    _posts.value = _posts.value.map { post ->
-                        if (post.id == updatedPost.id) updatedPost else post
+                    updateState { state ->
+                        state.copy(
+                            posts = state.posts.map { post -> if (post.id == updatedPost.id) updatedPost else post }
+                        )
                     }
                 }
                 .onFailure { e ->

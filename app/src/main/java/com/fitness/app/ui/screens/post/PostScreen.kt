@@ -38,7 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +58,7 @@ import com.fitness.app.ui.components.CMSInputField
 import com.fitness.app.ui.components.DismissibleErrorBanner
 import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.GradientButton
+import com.fitness.app.ui.viewmodels.CameraUiState
 import com.fitness.app.ui.components.PhotoSelector
 import java.io.File
 import java.text.SimpleDateFormat
@@ -75,7 +76,7 @@ fun PostScreen(
     postId: String? = null,
     postViewModel: PostViewModel = viewModel()
 ) {
-    val uiState by postViewModel.uiState.collectAsState()
+    val uiState by postViewModel.uiStateLiveData.observeAsState(PostUiState())
     val context = LocalContext.current
 
     LaunchedEffect(postId) {
@@ -229,7 +230,8 @@ private fun BasicsStep(
     val cameraViewModel: com.fitness.app.ui.viewmodels.CameraViewModel = viewModel(
         viewModelStoreOwner = context as androidx.activity.ComponentActivity
     )
-    val cameraImageUri by cameraViewModel.cameraImageUri.collectAsState()
+    val cameraUiState by cameraViewModel.uiStateLiveData.observeAsState(CameraUiState())
+    val cameraImageUri = cameraUiState.cameraImageUri
 
     // Consume the camera result
     LaunchedEffect(cameraImageUri) {

@@ -21,6 +21,9 @@ import com.fitness.app.data.model.extractId
 import com.fitness.app.data.model.toUserEntity
 import com.fitness.app.data.repository.AuthRepository
 import com.fitness.app.data.repository.UserProfilesRepository
+import com.fitness.app.auth.GoogleAuthResult
+import com.fitness.app.auth.GoogleAuthCodeStore
+import kotlinx.coroutines.flow.collectLatest
 
 data class LoginUiState(
     val email: String = "",
@@ -29,13 +32,22 @@ data class LoginUiState(
     val passwordError: String? = null,
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val googleResult: GoogleAuthResult? = null
 )
 
 class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
     private val gson = Gson()
     private val authRepository = AuthRepository()
     private val userProfilesRepository = UserProfilesRepository()
+
+    init {
+        viewModelScope.launch {
+            GoogleAuthCodeStore.result.collectLatest { result ->
+                updateState { it.copy(googleResult = result) }
+            }
+        }
+    }
 
     fun onEmailChanged(email: String) {
         updateState { it.copy(email = email, emailError = null, errorMessage = null) }
@@ -196,6 +208,10 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
 
     fun clearError() {
         updateState { it.copy(errorMessage = null) }
+    }
+
+    fun clearGoogleResult() {
+        GoogleAuthCodeStore.clear()
     }
 
     private fun extractUsernameFromJwt(token: String): String? {
