@@ -67,12 +67,51 @@ class PostsRepository {
 
     suspend fun getPostsByAuthor(authorId: String, page: Int, limit: Int): Result<PaginationResponse<Post>> {
         return try {
-            val response = apiService.getPostsByAuthor(authorId, page, limit)
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
-            } else {
-                Result.failure(Exception("Error fetching posts: ${response.message()}"))
+            val context = com.fitness.app.FitnessApp.instance
+            val db = com.fitness.app.data.local.AppDatabase.getInstance(context)
+            val dao = db.postDao()
+            val userDao = db.userDao()
+            val currentUsername = userDao.getUser()?.username
+
+            // 1. Attempt to fetch from network first
+            try {
+                val response = apiService.getPostsByAuthor(authorId, page, limit)
+                if (response.isSuccessful && response.body() != null) {
+                    val apiPosts = response.body()!!.items
+                    
+                    // Clear author-specific cache on page 1
+                    if (page == 1) {
+                        dao.clearByAuthor(authorId)
+                    }
+                    
+                    if (apiPosts.isNotEmpty()) {
+                        val entities = apiPosts.map { com.fitness.app.data.local.PostEntity.fromPost(it, currentUsername) }
+                        dao.upsertAll(entities)
+                    }
+                    
+                    return Result.success(response.body()!!)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PostsRepository", "Network fetch failed for author $authorId page $page", e)
             }
+
+            // 2. Fallback to local database
+            val offset = (page - 1) * limit
+            val localPagedPosts = dao.getPagedPostsByAuthorSnapshot(authorId, limit, offset)
+            val mappedPosts = localPagedPosts.map { it.toPost() }
+            
+            val hasMore = mappedPosts.size == limit
+            val estimatedTotal = if (hasMore) offset + limit + 1 else offset + mappedPosts.size
+
+            Result.success(
+                PaginationResponse(
+                    items = mappedPosts,
+                    total = estimatedTotal,
+                    page = page,
+                    limit = limit,
+                    totalPages = (estimatedTotal + limit - 1) / limit
+                )
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -80,12 +119,44 @@ class PostsRepository {
 
     suspend fun getAllPostsByAuthor(authorId: String): Result<PaginationResponse<Post>> {
         return try {
-            val response = apiService.getAllPostsByAuthor(authorId)
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
-            } else {
-                Result.failure(Exception("Error fetching posts: ${response.message()}"))
+            val context = com.fitness.app.FitnessApp.instance
+            val db = com.fitness.app.data.local.AppDatabase.getInstance(context)
+            val dao = db.postDao()
+            val userDao = db.userDao()
+            val currentUsername = userDao.getUser()?.username
+
+            // 1. Attempt network fetch
+            try {
+                val response = apiService.getAllPostsByAuthor(authorId)
+                if (response.isSuccessful && response.body() != null) {
+                    val apiPosts = response.body()!!.items
+                    
+                    // Clear author cache for "all posts" sync
+                    dao.clearByAuthor(authorId)
+                    
+                    if (apiPosts.isNotEmpty()) {
+                        val entities = apiPosts.map { com.fitness.app.data.local.PostEntity.fromPost(it, currentUsername) }
+                        dao.upsertAll(entities)
+                    }
+                    return Result.success(response.body()!!)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PostsRepository", "Network fetch failed for all posts of author $authorId", e)
             }
+
+            // 2. Fallback to local DB (no pagination needed here as it's "all")
+            val localPosts = dao.getAllPostsSnapshot().filter { it.authorId == authorId }
+            val mappedPosts = localPosts.map { it.toPost() }
+
+            Result.success(
+                PaginationResponse(
+                    items = mappedPosts,
+                    total = mappedPosts.size,
+                    page = 1,
+                    limit = mappedPosts.size.coerceAtLeast(1),
+                    totalPages = 1
+                )
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }

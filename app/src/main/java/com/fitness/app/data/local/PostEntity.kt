@@ -21,6 +21,7 @@ data class PostEntity(
     val commentsNumber: Int,
     val workoutDetails: WorkoutDetails?,
     val author: Author,
+    val authorId: String,
     val comments: List<Comment>? = null, // Kept but nullified in DB
     val createdAt: String,
     val updatedAt: String,
@@ -60,6 +61,7 @@ data class PostEntity(
                 commentsNumber = post.commentsNumber,
                 workoutDetails = post.workoutDetails,
                 author = post.author,
+                authorId = post.author.id,
                 comments = null, // CRITICAL: Strip large JSON blobs to fix CursorWindow error
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt,
