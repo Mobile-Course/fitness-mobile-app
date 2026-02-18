@@ -33,7 +33,10 @@ data class PostUiState(
     val currentStep: Int = 1,
     val isPosting: Boolean = false,
     val error: String? = null,
-    val selectedImageUri: android.net.Uri? = null
+    val selectedImageUri: android.net.Uri? = null,
+    val existingImageUrl: String? = null,
+    val isEditing: Boolean = false,
+    val editPostId: String? = null
 )
 
 /**
@@ -80,6 +83,33 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
 
     fun onImageSelected(uri: android.net.Uri?) {
         updateState { it.copy(selectedImageUri = uri, error = null) }
+    }
+
+    fun loadPost(postId: String) {
+        if (uiState.value.isEditing && uiState.value.editPostId == postId) return
+        updateState { it.copy(isPosting = true, error = null) }
+        viewModelScope.launch {
+            postsRepository.getPost(postId)
+                .onSuccess { post ->
+                    updateState {
+                        PostUiState(
+                            title = post.title,
+                            description = post.description ?: "",
+                            workoutType = post.workoutDetails?.type ?: "",
+                            duration = post.workoutDetails?.duration?.toString() ?: "",
+                            calories = post.workoutDetails?.calories?.toString() ?: "",
+                            subjectiveFeedbackFeelings = post.workoutDetails?.subjectiveFeedbackFeelings ?: "",
+                            personalGoals = post.workoutDetails?.personalGoals ?: "",
+                            existingImageUrl = post.src ?: post.pictures?.firstOrNull(),
+                            isEditing = true,
+                            editPostId = post.id
+                        )
+                    }
+                }
+                .onFailure {
+                    updateState { it.copy(isPosting = false, error = "Failed to load post") }
+                }
+        }
     }
 
     fun nextStep(): Boolean {
@@ -144,14 +174,17 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                     }
 
                     if (filePart == null) {
-                        postsRepository.createPost(
-                            CreatePostRequest(
-                                title = current.title.trim(),
-                                description = current.description,
-                                pictures = emptyList(),
-                                workoutDetails = workoutDetails
-                            )
+                        val request = CreatePostRequest(
+                            title = current.title.trim(),
+                            description = current.description,
+                            pictures = emptyList(),
+                            workoutDetails = workoutDetails
                         )
+                        if (current.isEditing && current.editPostId != null) {
+                            postsRepository.updatePost(current.editPostId, request)
+                        } else {
+                            postsRepository.createPost(request)
+                        }
                     } else {
                         val fields = mutableMapOf<String, RequestBody>()
                         fields["title"] = current.title.trim().toRequestBody("text/plain".toMediaType())
@@ -161,12 +194,19 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                                 gson.toJson(workoutDetails).toRequestBody("text/plain".toMediaType())
                         }
 
-                        postsRepository.createPostMultipart(fields = fields, file = filePart)
+                        // Multipart update
+                        if (current.isEditing && current.editPostId != null) {
+                             postsRepository.updatePostMultipart(current.editPostId, fields, filePart)
+                        } else {
+                             postsRepository.createPostMultipart(fields = fields, file = filePart)
+                        }
                     }
                 }
 
             result.fold(
                 onSuccess = {
+                    com.fitness.app.utils.DataInvalidator.refreshProfile.value = true
+                    com.fitness.app.utils.DataInvalidator.refreshFeed.value = true
                     updateState { PostUiState() }
                     onSuccess()
                 },
@@ -218,7 +258,7 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
             val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
             if (bytes.size.toLong() > maxUploadBytes) return null
             val body = bytes.toRequestBody(mimeType.toMediaType())
-            MultipartBody.Part.createFormData("file", name, body)
+            MultipartBody.Part.createFormData("files", name, body)
         } catch (_: FileNotFoundException) {
             null
         } catch (_: Exception) {

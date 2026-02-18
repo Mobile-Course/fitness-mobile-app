@@ -64,15 +64,26 @@ import java.util.Date
 import java.util.Locale
 import androidx.core.content.FileProvider
 
+import androidx.compose.runtime.LaunchedEffect
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostScreen(
     onPostCreated: () -> Unit,
     onCancel: () -> Unit = {},
-    viewModel: PostViewModel = viewModel()
+    postId: String? = null,
+    postViewModel: PostViewModel = viewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by postViewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    LaunchedEffect(postId) {
+        if (postId != null) {
+            postViewModel.loadPost(postId)
+        } else {
+             if (uiState.isEditing) postViewModel.resetForm()
+        }
+    }
 
     Scaffold(
         containerColor = Color(0xFFF0F4F8),
@@ -82,10 +93,10 @@ fun PostScreen(
                     IconButton(
                         onClick = {
                             if (uiState.currentStep == 1) {
-                                viewModel.resetForm()
+                                postViewModel.resetForm()
                                 onCancel()
                             } else {
-                                viewModel.previousStep()
+                                postViewModel.previousStep()
                             }
                         }
                     ) {
@@ -107,26 +118,26 @@ fun PostScreen(
                 if (uiState.currentStep == 1) {
                     TextButton(
                         onClick = {
-                            viewModel.resetForm()
+                            postViewModel.resetForm()
                             onCancel()
                         }
                     ) {
                         Text("Cancel", color = Color(0xFF6366F1), fontWeight = FontWeight.Bold)
                     }
                     GradientButton(
-                        onClick = { viewModel.nextStep() },
+                        onClick = { postViewModel.nextStep() },
                         modifier = Modifier.height(44.dp),
                         enabled = !uiState.isPosting
                     ) {
                         Text("Next Step", fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    TextButton(onClick = { viewModel.previousStep() }) {
+                    TextButton(onClick = { postViewModel.previousStep() }) {
                         Text("Back", color = Color(0xFF6366F1), fontWeight = FontWeight.Bold)
                     }
                     GradientButton(
                         onClick = {
-                            viewModel.submitPost(context = context, onSuccess = onPostCreated)
+                            postViewModel.submitPost(context = context, onSuccess = onPostCreated)
                         },
                         modifier = Modifier.height(44.dp),
                         enabled = !uiState.isPosting
@@ -142,7 +153,7 @@ fun PostScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Share Post", fontWeight = FontWeight.Bold)
+                                Text(if (uiState.isEditing) "Update Post" else "Share Post", fontWeight = FontWeight.Bold)
                                 Icon(
                                     imageVector = Icons.Filled.Send,
                                     contentDescription = null,
@@ -168,7 +179,7 @@ fun PostScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             uiState.error?.let {
-                DismissibleErrorBanner(error = it, onDismiss = viewModel::clearError)
+                DismissibleErrorBanner(error = it, onDismiss = { postViewModel.clearError() })
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -181,19 +192,18 @@ fun PostScreen(
                     if (uiState.currentStep == 1) {
                         BasicsStep(
                             uiState = uiState,
-                            onTitleChanged = viewModel::onTitleChanged,
-                            onDescriptionChanged = viewModel::onDescriptionChanged,
-                            onImageSelected = viewModel::onImageSelected
+                            onTitleChanged = { postViewModel.onTitleChanged(it) },
+                            onDescriptionChanged = { postViewModel.onDescriptionChanged(it) },
+                            onImageSelected = { postViewModel.onImageSelected(it) }
                         )
                     } else {
                         DetailsStep(
                             uiState = uiState,
-                            onWorkoutTypeChanged = viewModel::onWorkoutTypeChanged,
-                            onDurationChanged = viewModel::onDurationChanged,
-                            onCaloriesChanged = viewModel::onCaloriesChanged,
-                            onSubjectiveFeedbackFeelingsChanged =
-                                viewModel::onSubjectiveFeedbackFeelingsChanged,
-                            onPersonalGoalsChanged = viewModel::onPersonalGoalsChanged
+                            onWorkoutTypeChanged = { postViewModel.onWorkoutTypeChanged(it) },
+                            onDurationChanged = { postViewModel.onDurationChanged(it) },
+                            onCaloriesChanged = { postViewModel.onCaloriesChanged(it) },
+                            onSubjectiveFeedbackFeelingsChanged = { postViewModel.onSubjectiveFeedbackFeelingsChanged(it) },
+                            onPersonalGoalsChanged = { postViewModel.onPersonalGoalsChanged(it) }
                         )
                     }
                 }
@@ -234,7 +244,7 @@ private fun BasicsStep(
         )
 
     Text(
-        text = "Basics",
+        text = if (uiState.isEditing) "Edit Post" else "Basics",
         style = MaterialTheme.typography.titleMedium.copy(
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp
@@ -261,7 +271,9 @@ private fun BasicsStep(
             showPhotoSourceSheet = true
         },
         selectedImageUri = uiState.selectedImageUri,
-        onRemoveClick = { onImageSelected(null) },
+        onRemoveClick = if (uiState.selectedImageUri != null || (uiState.existingImageUrl != null && uiState.existingImageUrl.isNotBlank())) {
+            { onImageSelected(null) }
+        } else null,
         placeholderHeight = 96.dp,
         selectedImageHeight = 180.dp
     )

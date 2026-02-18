@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitness.app.ui.components.FitTrackHeader
 import com.fitness.app.ui.components.PostItem
@@ -88,6 +89,9 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
                                 onLikeClick = { viewModel.toggleLike(post.id) },
                                 onAddComment = { content ->
                                     viewModel.addComment(post.id, content)
+                                },
+                                onCommentsClick = {
+                                    viewModel.fetchPostDetails(post.id)
                                 }
                         )
                     }

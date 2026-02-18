@@ -110,6 +110,15 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 refreshPosts()
             }
         }
+
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.refreshProfile.collect { shouldRefresh ->
+                if (shouldRefresh) {
+                    refreshPosts()
+                    com.fitness.app.utils.DataInvalidator.refreshProfile.value = false
+                }
+            }
+        }
     }
 
     fun logout(context: Context, onLoggedOut: () -> Unit) {
@@ -291,6 +300,42 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 }
                 .onFailure {
                     _posts.value = currentPosts
+                }
+        }
+    }
+
+    fun deletePost(postId: String) {
+        viewModelScope.launch {
+            val result = postsRepository.deletePost(postId)
+            result
+                .onSuccess {
+                    _posts.value = _posts.value.filter { it.id != postId }
+                    updateState { current ->
+                        current.copy(
+                            profile =
+                                current.profile.copy(
+                                    posts = (current.profile.posts - 1).coerceAtLeast(0)
+                                )
+                        )
+                    }
+                    com.fitness.app.utils.DataInvalidator.refreshFeed.value = true
+                }
+                .onFailure { e ->
+                    _postsError.value = "Failed to delete post: ${e.message}"
+                }
+        }
+    }
+    fun fetchPostDetails(postId: String) {
+        viewModelScope.launch {
+            postsRepository.getPost(postId)
+                .onSuccess { updatedPost ->
+                    _posts.value = _posts.value.map { post ->
+                        if (post.id == updatedPost.id) updatedPost else post
+                    }
+                }
+                .onFailure { e ->
+                    // Log error but don't disrupt UI flow
+                    android.util.Log.e("ProfileViewModel", "Error fetching post details: ${e.message}", e)
                 }
         }
     }

@@ -12,6 +12,8 @@ import com.fitness.app.network.NetworkConfig
 import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 
 class FeedViewModel : ViewModel() {
@@ -36,6 +38,14 @@ class FeedViewModel : ViewModel() {
 
     init {
         loadPosts()
+        viewModelScope.launch {
+            com.fitness.app.utils.DataInvalidator.refreshFeed.collect { shouldRefresh ->
+                if (shouldRefresh) {
+                    refresh()
+                    com.fitness.app.utils.DataInvalidator.refreshFeed.value = false
+                }
+            }
+        }
     }
 
     fun loadPosts() {
@@ -50,16 +60,30 @@ class FeedViewModel : ViewModel() {
                 val result = repository.getPosts(currentPage, limit)
                 result
                         .onSuccess { response ->
+                            val items = response.items
+                            
+                            // Fetch details for each post in parallel to get likes/comments
+                            val detailedPosts = items.map { post ->
+                                async {
+                                    try {
+                                        val detailResult = repository.getPost(post.id)
+                                        detailResult.getOrNull() ?: post
+                                    } catch (e: Exception) {
+                                        post
+                                    }
+                                }
+                            }.awaitAll()
+
                             android.util.Log.d(
                                     "FeedViewModel",
-                                    "Success: Received ${response.items.size} items"
+                                    "Success: Received ${items.size} items"
                             )
                             val currentList = _posts.value.toMutableList()
-                            currentList.addAll(response.items)
+                            currentList.addAll(detailedPosts)
                             _posts.value = currentList
 
                             currentPage++
-                            isLastPage = response.items.size < limit
+                            isLastPage = items.size < limit
                             android.util.Log.d(
                                     "FeedViewModel",
                                     "Next page: $currentPage, isLastPage: $isLastPage"
@@ -201,6 +225,20 @@ class FeedViewModel : ViewModel() {
                                 e
                         )
                     }
+        }
+    }
+
+    fun fetchPostDetails(postId: String) {
+        viewModelScope.launch {
+            repository.getPost(postId)
+                .onSuccess { updatedPost ->
+                    _posts.value = _posts.value.map { post ->
+                        if (post.id == updatedPost.id) updatedPost else post
+                    }
+                }
+                .onFailure { e ->
+                    android.util.Log.e("FeedViewModel", "Error fetching post details: ${e.message}", e)
+                }
         }
     }
 }

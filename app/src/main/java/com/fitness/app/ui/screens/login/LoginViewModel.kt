@@ -227,7 +227,18 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             ?: NetworkConfig.getRefreshCookieValue()
                             ?: UserSession.getRefreshToken()
                             ?: previous?.refreshToken
-                    val entity = profile.toUserEntity().copy(refreshToken = resolvedRefreshToken)
+                            
+                    // Fix: Prioritize existing UserSession username if available, as profile might return null/empty
+                    val currentUsername = UserSession.username.value
+                    val entityFromProfile = profile.toUserEntity()
+                    val finalUsername = 
+                        if (!currentUsername.isNullOrBlank()) currentUsername 
+                        else entityFromProfile.username
+                        
+                    val entity = entityFromProfile.copy(
+                        username = finalUsername, 
+                        refreshToken = resolvedRefreshToken
+                    )
                     dao.upsert(entity)
                     UserSession.setUser(
                         userId = profile.extractId(),

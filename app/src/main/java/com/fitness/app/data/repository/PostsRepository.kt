@@ -127,4 +127,66 @@ class PostsRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun deletePost(postId: String): Result<Unit> {
+        return try {
+            val response = apiService.deletePost(postId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message =
+                    errorBody?.takeIf { it.isNotBlank() }
+                        ?: response.message()
+                        ?: "Unknown error"
+                Result.failure(Exception("Error deleting post: $message"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPost(id: String): Result<Post> {
+        return try {
+            val response = apiService.getPost(id)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error fetching post"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updatePost(id: String, request: CreatePostRequest): Result<Post> {
+        return try {
+            val response = apiService.updatePost(id, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error updating post"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updatePostMultipart(id: String, fields: Map<String, RequestBody>, file: MultipartBody.Part?): Result<Post> {
+        return try {
+            val response = apiService.updatePostMultipart(id, fields, file)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message =
+                    errorBody?.takeIf { it.isNotBlank() }
+                        ?: response.message()
+                        ?: "Unknown error"
+                Result.failure(Exception("Error updating post with image: $message"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

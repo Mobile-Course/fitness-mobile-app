@@ -37,12 +37,13 @@ import coil.compose.AsyncImage
 fun PhotoSelector(
     onClick: () -> Unit,
     selectedImageUri: android.net.Uri? = null,
+    existingImageUrl: String? = null,
     onRemoveClick: (() -> Unit)? = null,
     placeholderHeight: Dp = 56.dp,
     selectedImageHeight: Dp = 200.dp,
     modifier: Modifier = Modifier
 ) {
-    if (selectedImageUri != null) {
+    if (selectedImageUri != null || (existingImageUrl != null && existingImageUrl.isNotBlank())) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -56,7 +57,7 @@ fun PhotoSelector(
                 .clip(RoundedCornerShape(4.dp))
         ) {
             AsyncImage(
-                model = selectedImageUri,
+                model = selectedImageUri ?: existingImageUrl,
                 contentDescription = "Selected Image",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop

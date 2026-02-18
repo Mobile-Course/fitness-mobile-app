@@ -36,3 +36,5 @@ google-services.json
 .agent/*
 
 # *.gradle
+
+fitness-app-web-server/

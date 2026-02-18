@@ -159,7 +159,11 @@ fun MainScreen(onLogout: () -> Unit) {
                 PostScreen(
                     onPostCreated = {
                         navController.navigate(Screen.Feed.route) {
-                            popUpTo(Screen.Feed.route) { inclusive = true }
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     },
                     onCancel = {
@@ -195,13 +199,30 @@ fun MainScreen(onLogout: () -> Unit) {
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     onLogout = onLogout,
-                    onEditProfile = { navController.navigate(Screen.EditProfile.route) }
+                    onEditProfile = { navController.navigate(Screen.EditProfile.route) },
+                    onEditPost = { postId -> navController.navigate(Screen.EditPost.createRoute(postId)) }
                 )
             }
             composable(Screen.EditProfile.route) {
                 EditProfileScreen(
                     onBack = { navController.popBackStack() },
                     onProfileUpdated = { navController.popBackStack() }
+                )
+                EditProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onProfileUpdated = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.EditPost.route) { backStackEntry ->
+                val postId = backStackEntry.arguments?.getString("postId")
+                PostScreen(
+                    postId = postId,
+                    onPostCreated = {
+                        navController.popBackStack()
+                    },
+                    onCancel = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }
