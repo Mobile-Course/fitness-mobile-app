@@ -26,12 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 
 @Composable
 fun PhotoSelector(
@@ -56,11 +54,17 @@ fun PhotoSelector(
                 )
                 .clip(RoundedCornerShape(4.dp))
         ) {
-            AsyncImage(
-                model = selectedImageUri ?: existingImageUrl,
+            val resolvedUrl = if (selectedImageUri != null) {
+                selectedImageUri.toString()
+            } else {
+                val url = existingImageUrl ?: ""
+                if (url.startsWith("http")) url else "https://node86.cs.colman.ac.il$url"
+            }
+            PicassoImage(
+                url = resolvedUrl,
                 contentDescription = "Selected Image",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = android.widget.ImageView.ScaleType.CENTER_CROP
             )
             
             // Remove Button

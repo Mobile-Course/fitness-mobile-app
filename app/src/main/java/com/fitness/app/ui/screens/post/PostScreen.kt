@@ -223,7 +223,20 @@ private fun BasicsStep(
 ) {
     val context = LocalContext.current
     var showPhotoSourceSheet by remember { mutableStateOf(false) }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Obtain CameraViewModel scoped to the Activity to share with MainFragment
+    val cameraViewModel: com.fitness.app.ui.viewmodels.CameraViewModel = viewModel(
+        viewModelStoreOwner = context as androidx.activity.ComponentActivity
+    )
+    val cameraImageUri by cameraViewModel.cameraImageUri.collectAsState()
+
+    // Consume the camera result
+    LaunchedEffect(cameraImageUri) {
+        cameraImageUri?.let { uri ->
+            onImageSelected(uri)
+            cameraViewModel.onCameraResult(null) // Clear after consumption
+        }
+    }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val singlePhotoPickerLauncher =
@@ -231,17 +244,7 @@ private fun BasicsStep(
             contract = ActivityResultContracts.PickVisualMedia(),
             onResult = onImageSelected
         )
-    val cameraLauncher =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.TakePicture(),
-            onResult = { success ->
-                if (success) {
-                    onImageSelected(pendingCameraUri)
-                } else {
-                    pendingCameraUri = null
-                }
-            }
-        )
+    // Gallery picker launcher (kept here as it's fine in Composable)
 
     Text(
         text = if (uiState.isEditing) "Edit Post" else "Basics",
@@ -297,11 +300,8 @@ private fun BasicsStep(
                 TextButton(
                     onClick = {
                         showPhotoSourceSheet = false
-                        val uri = createTempImageUri(context)
-                        if (uri != null) {
-                            pendingCameraUri = uri
-                            cameraLauncher.launch(uri)
-                        }
+                        // Trigger Camera via SharedViewModel
+                        cameraViewModel.requestCameraLaunch()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -326,16 +326,6 @@ private fun BasicsStep(
     }
 }
 
-private fun createTempImageUri(context: Context): Uri? {
-    return try {
-        val imageDir = File(context.cacheDir, "images").apply { mkdirs() }
-        val fileName = "post_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.jpg"
-        val imageFile = File(imageDir, fileName)
-        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
-    } catch (_: Exception) {
-        null
-    }
-}
 
 @Composable
 private fun DetailsStep(

@@ -14,12 +14,43 @@ class PostsRepository {
 
     suspend fun getPosts(page: Int, limit: Int): Result<PaginationResponse<Post>> {
         return try {
-            val response = apiService.getPosts(page, limit)
-            if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
-            } else {
-                Result.failure(Exception("Error fetching posts: ${response.message()}"))
+            val context = com.fitness.app.FitnessApp.instance
+            val dao = com.fitness.app.data.local.AppDatabase.getInstance(context).postDao()
+            val lastUpdated = dao.getLastUpdated()
+
+            try {
+                // Delta Sync: Fetch only changed/new posts from server
+                val response = apiService.getPosts(page, limit, lastUpdated)
+                if (response.isSuccessful && response.body() != null) {
+                    val apiPosts = response.body()!!.items
+                    if (apiPosts.isNotEmpty()) {
+                        val entities = apiPosts.map { com.fitness.app.data.local.PostEntity.fromPost(it) }
+                        dao.upsertAll(entities)
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore network errors if we have local data, or propagate if critical
+                e.printStackTrace()
             }
+
+            // Return Source of Truth: Local Database
+            val localPosts = dao.getAllPostsSnapshot()
+            // Emulate pagination from local DB
+            val fromIndex = (page - 1) * limit
+            val toIndex = minOf(fromIndex + limit, localPosts.size)
+            val pagedPosts = if (fromIndex < localPosts.size) localPosts.subList(fromIndex, toIndex) else emptyList()
+            
+            val mappedPosts = pagedPosts.map { it.toPost() }
+            
+            Result.success(
+                PaginationResponse(
+                    items = mappedPosts,
+                    total = localPosts.size,
+                    page = page,
+                    limit = limit,
+                    totalPages = (localPosts.size + limit - 1) / limit
+                )
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }
