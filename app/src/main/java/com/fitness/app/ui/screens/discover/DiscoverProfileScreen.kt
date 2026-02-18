@@ -204,7 +204,8 @@ fun DiscoverProfileScreen(
                         post = post,
                         isLiked = isLikedByUser || likedPostIds.contains(post.id),
                         onLikeClick = { viewModel.toggleLike(post.id) },
-                        onAddComment = { content -> viewModel.addComment(post.id, content) }
+                        onAddComment = { content -> viewModel.addComment(post.id, content) },
+                        onCommentsClick = { viewModel.fetchPostDetails(post.id) }
                     )
                 }
 

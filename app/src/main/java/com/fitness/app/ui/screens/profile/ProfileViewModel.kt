@@ -325,6 +325,20 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 }
         }
     }
+    fun fetchPostDetails(postId: String) {
+        viewModelScope.launch {
+            postsRepository.getPost(postId)
+                .onSuccess { updatedPost ->
+                    _posts.value = _posts.value.map { post ->
+                        if (post.id == updatedPost.id) updatedPost else post
+                    }
+                }
+                .onFailure { e ->
+                    // Log error but don't disrupt UI flow
+                    android.util.Log.e("ProfileViewModel", "Error fetching post details: ${e.message}", e)
+                }
+        }
+    }
 }
 
 private data class ProfileSessionFields(

@@ -207,6 +207,21 @@ class DiscoverProfileViewModel : ViewModel() {
                 .onFailure {
                     _posts.value = currentPosts
                 }
+
+        }
+    }
+
+    fun fetchPostDetails(postId: String) {
+        viewModelScope.launch {
+            postsRepository.getPost(postId)
+                .onSuccess { updatedPost ->
+                    _posts.value = _posts.value.map { post ->
+                        if (post.id == updatedPost.id) updatedPost else post
+                    }
+                }
+                .onFailure { e ->
+                    android.util.Log.e("DiscoverProfileViewModel", "Error fetching post details: ${e.message}", e)
+                }
         }
     }
 }

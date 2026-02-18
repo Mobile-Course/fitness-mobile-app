@@ -244,6 +244,7 @@ fun ProfileScreen(
                         isAuthor = isAuthor,
                         onLikeClick = { viewModel.toggleLike(post.id) },
                         onAddComment = { content -> viewModel.addComment(post.id, content) },
+                        onCommentsClick = { viewModel.fetchPostDetails(post.id) },
                         onDeleteClick = { viewModel.deletePost(post.id) },
                         onEditClick = { onEditPost(post.id) }
                     )

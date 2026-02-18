@@ -49,8 +49,9 @@ fun PostItem(
         isAuthor: Boolean = false,
         onLikeClick: () -> Unit,
         onAddComment: (String) -> Unit,
+        onCommentsClick: () -> Unit,
         onDeleteClick: () -> Unit = {},
-        onEditClick: () -> Unit = {}
+    onEditClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authorDisplayName = post.author.name?.takeIf { it.isNotBlank() } ?: post.author.username
@@ -242,7 +243,12 @@ fun PostItem(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 IconButton(
-                        onClick = { showCommentInput = !showCommentInput },
+                        onClick = {
+                            showCommentInput = !showCommentInput
+                            if (showCommentInput) {
+                                onCommentsClick()
+                            }
+                        },
                         modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
@@ -289,37 +295,32 @@ fun PostItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             val comments = post.comments ?: emptyList()
-            if (comments.isNotEmpty()) {
-                val visibleComments =
-                        if (showAllComments || comments.size <= 2) comments
-                        else comments.takeLast(2)
 
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Text(
-                            text = "Comments",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    visibleComments.forEach { comment ->
+            // Only show comments if the user explicitly clicked the comment button
+            if (showCommentInput) {
+                if (comments.isNotEmpty()) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                         Text(
-                                text = "${comment.author.username}: ${comment.content}",
-                                style = MaterialTheme.typography.bodySmall
+                                text = "Comments",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
                         )
-                    }
-
-                    if (comments.size > 2) {
-                        TextButton(
-                                onClick = { showAllComments = !showAllComments },
-                                contentPadding = PaddingValues(0.dp)
-                        ) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        comments.forEach { comment ->
                             Text(
-                                    text =
-                                            if (showAllComments) "Show less"
-                                            else "Show more comments"
+                                    text = "${comment.author.username}: ${comment.content}",
+                                    style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
+                } else {
+                     // specific message when there are no comments yet but section is open
+                     Text(
+                        text = "No comments yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                         color = Color.Gray,
+                         modifier = Modifier.padding(horizontal = 16.dp)
+                    )
                 }
             }
 
@@ -351,7 +352,6 @@ fun PostItem(
                                 if (trimmed.isNotEmpty()) {
                                     onAddComment(trimmed)
                                     commentText = ""
-                                    showCommentInput = false
                                 }
                             },
                             modifier = Modifier.size(32.dp)

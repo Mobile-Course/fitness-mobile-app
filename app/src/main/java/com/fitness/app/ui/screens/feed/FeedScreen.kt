@@ -89,6 +89,9 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
                                 onLikeClick = { viewModel.toggleLike(post.id) },
                                 onAddComment = { content ->
                                     viewModel.addComment(post.id, content)
+                                },
+                                onCommentsClick = {
+                                    viewModel.fetchPostDetails(post.id)
                                 }
                         )
                     }
