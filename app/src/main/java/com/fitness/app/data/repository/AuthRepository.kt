@@ -26,6 +26,35 @@ class AuthRepository {
         }
     }
 
+    suspend fun signup(
+        username: String,
+        password: String,
+        name: String,
+        lastName: String,
+        email: String
+    ): Result<Unit> {
+        return try {
+            val response =
+                apiService.signin(
+                    com.fitness.app.data.model.SigninRequest(
+                        username = username,
+                        password = password,
+                        name = name,
+                        lastName = lastName,
+                        email = email
+                    )
+                )
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val error = response.errorBody()?.string()
+                Result.failure(Exception("Signup failed: ${error ?: response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getProfile(): Result<UserProfileDto> {
         return try {
             val response = apiService.getProfile()

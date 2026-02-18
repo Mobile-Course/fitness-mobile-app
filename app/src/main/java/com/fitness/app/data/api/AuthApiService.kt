@@ -2,6 +2,7 @@ package com.fitness.app.data.api
 
 import com.fitness.app.data.model.LoginRequest
 import com.fitness.app.data.model.LoginResponse
+import com.fitness.app.data.model.SigninRequest
 import com.fitness.app.data.model.UpdateUserProfileRequest
 import com.fitness.app.data.model.UserProfileDto
 import okhttp3.MultipartBody
@@ -17,6 +18,8 @@ import com.fitness.app.data.model.DiscoverUserDto
 
 interface AuthApiService {
     @POST("api/auth/login") suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("api/auth/signin") suspend fun signin(@Body request: SigninRequest): Response<Unit>
 
     @GET("api/auth/profile") suspend fun getProfile(): Response<UserProfileDto>
 
