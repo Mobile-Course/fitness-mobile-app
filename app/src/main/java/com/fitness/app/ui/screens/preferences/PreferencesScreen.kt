@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,8 +30,8 @@ fun PreferencesScreen(
     val accentDark = Color(0xFF343E4E)
     val cardBg = Color.White
 
-    var pushNotifications by remember { mutableStateOf(true) }
-    var darkMode by remember { mutableStateOf(false) }
+    var pushNotifications by rememberSaveable { mutableStateOf(true) }
+    var darkMode by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier

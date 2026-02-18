@@ -42,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -222,7 +223,7 @@ private fun BasicsStep(
     onImageSelected: (android.net.Uri?) -> Unit
 ) {
     val context = LocalContext.current
-    var showPhotoSourceSheet by remember { mutableStateOf(false) }
+    var showPhotoSourceSheet by rememberSaveable { mutableStateOf(false) }
 
     // Obtain CameraViewModel scoped to the Activity to share with MainFragment
     val cameraViewModel: com.fitness.app.ui.viewmodels.CameraViewModel = viewModel(
