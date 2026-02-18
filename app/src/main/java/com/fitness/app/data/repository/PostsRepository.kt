@@ -15,40 +15,49 @@ class PostsRepository {
     suspend fun getPosts(page: Int, limit: Int): Result<PaginationResponse<Post>> {
         return try {
             val context = com.fitness.app.FitnessApp.instance
-            val dao = com.fitness.app.data.local.AppDatabase.getInstance(context).postDao()
-            val lastUpdated = dao.getLastUpdated()
+            val db = com.fitness.app.data.local.AppDatabase.getInstance(context)
+            val dao = db.postDao()
+            val userDao = db.userDao()
+            val currentUsername = userDao.getUser()?.username
 
+            // 1. Attempt to fetch from network first for the most accurate state
             try {
-                // Delta Sync: Fetch only changed/new posts from server
-                val response = apiService.getPosts(page, limit, lastUpdated)
+                val response = apiService.getPosts(page = page, limit = limit)
                 if (response.isSuccessful && response.body() != null) {
                     val apiPosts = response.body()!!.items
+                    
+                    // If this is the first page and we are online, we should clear the cache 
+                    // to remove any posts that might have been deleted on the server.
+                    if (page == 1) {
+                        dao.clear()
+                    }
+                    
                     if (apiPosts.isNotEmpty()) {
-                        val entities = apiPosts.map { com.fitness.app.data.local.PostEntity.fromPost(it) }
+                        val entities = apiPosts.map { com.fitness.app.data.local.PostEntity.fromPost(it, currentUsername) }
                         dao.upsertAll(entities)
                     }
+                    
+                    return Result.success(response.body()!!)
                 }
             } catch (e: Exception) {
-                // Ignore network errors if we have local data, or propagate if critical
-                e.printStackTrace()
+                android.util.Log.e("PostsRepository", "Network fetch failed for page $page, falling back to cache", e)
             }
 
-            // Return Source of Truth: Local Database
-            val localPosts = dao.getAllPostsSnapshot()
-            // Emulate pagination from local DB
-            val fromIndex = (page - 1) * limit
-            val toIndex = minOf(fromIndex + limit, localPosts.size)
-            val pagedPosts = if (fromIndex < localPosts.size) localPosts.subList(fromIndex, toIndex) else emptyList()
+            // 2. Fallback to local database if network fails or returns error
+            val offset = (page - 1) * limit
+            val localPagedPosts = dao.getPagedPostsSnapshot(limit, offset)
+            val mappedPosts = localPagedPosts.map { it.toPost() }
             
-            val mappedPosts = pagedPosts.map { it.toPost() }
-            
+            val hasMore = mappedPosts.size == limit
+            val estimatedTotal = if (hasMore) offset + limit + 1 else offset + mappedPosts.size
+
             Result.success(
                 PaginationResponse(
                     items = mappedPosts,
-                    total = localPosts.size,
+                    total = estimatedTotal,
                     page = page,
                     limit = limit,
-                    totalPages = (localPosts.size + limit - 1) / limit
+                    totalPages = (estimatedTotal + limit - 1) / limit
                 )
             )
         } catch (e: Exception) {
@@ -86,7 +95,21 @@ class PostsRepository {
         return try {
             val response = apiService.likeOrUnlikePost(LikePostRequest(postId))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                var updatedPost = response.body()!!
+                
+                // Compute isLikedByMe before broadcasting
+                val context = com.fitness.app.FitnessApp.instance
+                val db = com.fitness.app.data.local.AppDatabase.getInstance(context)
+                val currentUsername = db.userDao().getUser()?.username
+                
+                val likedByMe = currentUsername != null && updatedPost.likes?.any { it.username == currentUsername } == true
+                updatedPost = updatedPost.copy(isLikedByMe = likedByMe)
+                
+                // Update local DB for persistence
+                db.postDao().upsertAll(listOf(com.fitness.app.data.local.PostEntity.fromPost(updatedPost, currentUsername)))
+                
+                com.fitness.app.utils.DataInvalidator.postUpdates.emit(updatedPost)
+                Result.success(updatedPost)
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message =
@@ -104,7 +127,21 @@ class PostsRepository {
         return try {
             val response = apiService.addComment(postId, AddCommentRequest(content))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                var updatedPost = response.body()!!
+                
+                // Compute isLikedByMe before broadcasting
+                val context = com.fitness.app.FitnessApp.instance
+                val db = com.fitness.app.data.local.AppDatabase.getInstance(context)
+                val currentUsername = db.userDao().getUser()?.username
+                
+                val likedByMe = currentUsername != null && updatedPost.likes?.any { it.username == currentUsername } == true
+                updatedPost = updatedPost.copy(isLikedByMe = likedByMe)
+                
+                // Update local DB for persistence
+                db.postDao().upsertAll(listOf(com.fitness.app.data.local.PostEntity.fromPost(updatedPost, currentUsername)))
+                
+                com.fitness.app.utils.DataInvalidator.postUpdates.emit(updatedPost)
+                Result.success(updatedPost)
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message =
@@ -163,6 +200,12 @@ class PostsRepository {
         return try {
             val response = apiService.deletePost(postId)
             if (response.isSuccessful) {
+                // Update local DB for persistence
+                val context = com.fitness.app.FitnessApp.instance
+                val db = com.fitness.app.data.local.AppDatabase.getInstance(context)
+                db.postDao().deletePost(postId)
+                
+                com.fitness.app.utils.DataInvalidator.postDeletions.emit(postId)
                 Result.success(Unit)
             } else {
                 val errorBody = response.errorBody()?.string()

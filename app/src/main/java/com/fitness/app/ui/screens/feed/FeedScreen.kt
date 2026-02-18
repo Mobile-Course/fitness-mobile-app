@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -24,11 +25,12 @@ import kotlinx.coroutines.flow.filter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.viewModel()) {
-    val posts by viewModel.posts.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val likedPostIds by viewModel.likedPostIds.collectAsState()
-    val currentUsername by viewModel.currentUsername.collectAsState()
+    val uiState by viewModel.uiStateLiveData.observeAsState(FeedUiState())
+    val posts = uiState.posts
+    val isLoading = uiState.isLoading
+    val error = uiState.error
+    val likedPostIds = uiState.likedPostIds
+    val currentUsername = uiState.currentUsername
     val listState = rememberLazyListState()
 
     // True only on the very first load (no posts yet and loading)
@@ -45,11 +47,11 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
         }
     }
 
-    LaunchedEffect(listState) {
-        snapshotFlow { isScrollToEnd to isLoading }
-            .distinctUntilChanged()
-            .filter { (scrollToEnd, loading) -> scrollToEnd && !loading }
-            .collect { viewModel.loadPosts() }
+    // Trigger load more when scroll is at end and not already loading
+    LaunchedEffect(isScrollToEnd, isLoading) {
+        if (isScrollToEnd && !isLoading) {
+            viewModel.loadPosts()
+        }
     }
 
     val bgColor = MaterialTheme.colorScheme.background
@@ -97,8 +99,9 @@ fun FeedScreen(viewModel: FeedViewModel = androidx.lifecycle.viewmodel.compose.v
                         ) {
                             items(posts, key = { it.id }) { post ->
                                 val isLikedByUser =
-                                    currentUsername != null &&
-                                            post.likes?.any { it.username == currentUsername } == true
+                                    (currentUsername != null && post.likes?.any { it.username == currentUsername } == true) ||
+                                    (post.isLikedByMe) // Use the flag from normalized local DB
+                                
                                 PostItem(
                                     post = post,
                                     isLiked = isLikedByUser || likedPostIds.contains(post.id),

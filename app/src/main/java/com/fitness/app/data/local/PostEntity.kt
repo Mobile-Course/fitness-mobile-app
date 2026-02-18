@@ -15,15 +15,16 @@ data class PostEntity(
     val description: String?,
     val src: String?,
     val pictures: List<String>?,
-    val likes: List<Like>?,
+    val likes: List<Like>? = null, // Kept for model compatibility but nullified in DB
+    val isLikedByMe: Boolean = false, // Normalized flag
     val likeNumber: Int,
     val commentsNumber: Int,
     val workoutDetails: WorkoutDetails?,
     val author: Author,
-    val comments: List<Comment>?,
+    val comments: List<Comment>? = null, // Kept but nullified in DB
     val createdAt: String,
     val updatedAt: String,
-    val lastUpdated: Long = System.currentTimeMillis() // For Delta Sync
+    val lastUpdated: Long = System.currentTimeMillis()
 ) {
     fun toPost(): Post {
         return Post(
@@ -33,6 +34,7 @@ data class PostEntity(
             src = src,
             pictures = pictures,
             likes = likes,
+            isLikedByMe = isLikedByMe,
             likeNumber = likeNumber,
             commentsNumber = commentsNumber,
             workoutDetails = workoutDetails,
@@ -44,19 +46,21 @@ data class PostEntity(
     }
 
     companion object {
-        fun fromPost(post: Post): PostEntity {
+        fun fromPost(post: Post, currentUsername: String?): PostEntity {
+            val likedByMe = currentUsername != null && post.likes?.any { it.username == currentUsername } == true
             return PostEntity(
                 id = post.id,
                 title = post.title,
                 description = post.description,
                 src = post.src,
                 pictures = post.pictures,
-                likes = post.likes,
+                likes = null, // CRITICAL: Strip large JSON blobs to fix CursorWindow error
+                isLikedByMe = likedByMe,
                 likeNumber = post.likeNumber,
                 commentsNumber = post.commentsNumber,
                 workoutDetails = post.workoutDetails,
                 author = post.author,
-                comments = post.comments,
+                comments = null, // CRITICAL: Strip large JSON blobs to fix CursorWindow error
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt,
                 lastUpdated = System.currentTimeMillis()
