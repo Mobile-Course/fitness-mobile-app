@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -85,9 +86,9 @@ fun EditProfileScreen(
             "Dancer",
             "FitnessEnthusiast"
         )
-    var sportTypeExpanded by remember { mutableStateOf(false) }
+    var sportTypeExpanded by rememberSaveable { mutableStateOf(false) }
     val sexOptions = listOf("Male", "Female", "Other")
-    var sexExpanded by remember { mutableStateOf(false) }
+    var sexExpanded by rememberSaveable { mutableStateOf(false) }
     val imagePicker =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.GetContent()

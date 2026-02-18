@@ -22,7 +22,8 @@ interface PostsApiService {
     @GET("api/posts")
     suspend fun getPosts(
             @Query("page") page: Int,
-            @Query("limit") limit: Int
+            @Query("limit") limit: Int,
+            @Query("since") since: Long? = null
     ): Response<PaginationResponse<Post>>
 
     @GET("api/posts/author/{authorId}")

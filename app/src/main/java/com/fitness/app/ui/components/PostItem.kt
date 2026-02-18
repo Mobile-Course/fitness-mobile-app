@@ -24,14 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.fitness.app.data.model.Post
 import com.fitness.app.network.NetworkConfig
 import java.time.Duration
@@ -55,7 +52,12 @@ fun PostItem(
 ) {
     val context = LocalContext.current
     val authorDisplayName = post.author.name?.takeIf { it.isNotBlank() } ?: post.author.username
-    val imageSource = post.src?.takeIf { it.isNotBlank() } ?: post.pictures?.firstOrNull { it.isNotBlank() }
+    val baseUrl = "https://node86.cs.colman.ac.il"
+    fun resolveUrl(path: String?): String? {
+        if (path.isNullOrBlank()) return null
+        return if (path.startsWith("http")) path else "$baseUrl$path"
+    }
+    val imageSource = resolveUrl(post.src?.takeIf { it.isNotBlank() } ?: post.pictures?.firstOrNull { it.isNotBlank() })
     val workout = post.workoutDetails
     val hasWorkoutDetails =
             workout?.type?.isNotBlank() == true ||
@@ -72,26 +74,12 @@ fun PostItem(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(16.dp)
             ) {
-                AsyncImage(
-                        model =
-                                ImageRequest.Builder(context)
-                                        .data(
-                                                post.author.picture
-                                                        ?: "https://ui-avatars.com/api/?name=${post.author.username}&background=random"
-                                        )
-                                        .listener(
-                                                onError = { _, result ->
-                                                    android.util.Log.e(
-                                                            "PostItem",
-                                                            "Avatar load failed: ${result.throwable.message}",
-                                                            result.throwable
-                                                    )
-                                                }
-                                        )
-                                        .build(),
+                PicassoImage(
+                        url = resolveUrl(post.author.picture)
+                            ?: "https://ui-avatars.com/api/?name=${post.author.username}&background=random",
                         contentDescription = "Author Avatar",
                         modifier = Modifier.size(40.dp).clip(CircleShape),
-                        contentScale = ContentScale.Crop
+                        contentScale = android.widget.ImageView.ScaleType.CENTER_CROP
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
@@ -126,38 +114,15 @@ fun PostItem(
             }
 
             if (!imageSource.isNullOrBlank()) {
-                val imageModel = remember(imageSource) { resolveImageModel(imageSource) }
-                AsyncImage(
-                        model =
-                                ImageRequest.Builder(context)
-                                        .data(imageModel)
-                                        .listener(
-                                                onStart = {
-                                                    android.util.Log.d(
-                                                            "PostItem",
-                                                            "Image request started: ${imageSource.take(50)}..."
-                                                    )
-                                                },
-                                                onSuccess = { _, _ ->
-                                                    android.util.Log.d(
-                                                            "PostItem",
-                                                            "Image loaded successfully"
-                                                    )
-                                                },
-                                                onError = { _, result ->
-                                                    android.util.Log.e(
-                                                            "PostItem",
-                                                            "Image load failed: ${result.throwable.message}",
-                                                            result.throwable
-                                                    )
-                                                }
-                                        )
-                                        .build(),
-                        contentDescription = "Post Image",
-                        modifier = Modifier.fillMaxWidth().height(250.dp),
-                        contentScale = ContentScale.Crop
+                PicassoImage(
+                    url = imageSource,
+                    contentDescription = "Post Image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp),
+                    contentScale = android.widget.ImageView.ScaleType.CENTER_CROP
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {

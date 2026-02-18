@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -49,7 +50,7 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var showSettingsMenu by remember { mutableStateOf(false) }
+    var showSettingsMenu by rememberSaveable { mutableStateOf(false) }
     val bgColor = Color(0xFFF0F4F8)
     val accentDark = Color(0xFF343E4E)
     val cardBg = Color.White
