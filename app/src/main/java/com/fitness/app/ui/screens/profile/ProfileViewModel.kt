@@ -9,6 +9,7 @@ import com.fitness.app.data.model.Comment
 import com.fitness.app.data.model.Like
 import com.fitness.app.data.model.Post
 import com.fitness.app.data.repository.AuthRepository
+import com.fitness.app.data.repository.AchievementsRepository
 import com.fitness.app.data.repository.PostsRepository
 import com.fitness.app.network.NetworkConfig
 import java.time.Instant
@@ -17,8 +18,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 data class UserProfile(
     val name: String = "User",
@@ -33,18 +32,21 @@ data class UserProfile(
     val level: Int = 1
 )
 
-data class Achievement(
+data class ProfileAchievementUi(
+    val id: String,
     val title: String,
     val description: String,
-    val icon: String // Using simplified icon representation for demo
+    val icon: String,
+    val currentTier: String,
+    val isUnlocked: Boolean
 )
 
 data class ProfileUiState(
     val profile: UserProfile = UserProfile(),
-    val achievements: List<Achievement> = listOf(
-        Achievement("Early Bird", "Complete 10 morning workouts", "Trophy")
-    ),
+    val achievements: List<ProfileAchievementUi> = emptyList(),
     val isLoading: Boolean = false,
+    val isAchievementsLoading: Boolean = false,
+    val achievementsError: String? = null,
     val posts: List<Post> = emptyList(),
     val isPostsLoading: Boolean = false,
     val postsError: String? = null,
@@ -54,6 +56,7 @@ data class ProfileUiState(
 
 class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
     private val authRepository = AuthRepository()
+    private val achievementsRepository = AchievementsRepository()
     private val postsRepository = PostsRepository()
 
     private var currentPage = 1
@@ -119,6 +122,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 if (userId == currentAuthorId) return@collect
                 currentAuthorId = userId
                 refreshProfileStats(userId)
+                refreshAchievements()
                 refreshPosts()
             }
         }
@@ -126,6 +130,7 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
         viewModelScope.launch {
             com.fitness.app.utils.DataInvalidator.refreshProfile.collect { shouldRefresh ->
                 if (shouldRefresh) {
+                    refreshAchievements()
                     refreshPosts()
                     com.fitness.app.utils.DataInvalidator.refreshProfile.value = false
                 }
@@ -236,6 +241,13 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
         loadPosts()
     }
 
+    fun refreshProfile() {
+        val authorId = currentAuthorId ?: return
+        refreshProfileStats(authorId)
+        refreshAchievements()
+        refreshPosts()
+    }
+
     private fun refreshProfileStats(authorId: String) {
         viewModelScope.launch {
             val profileResult = authRepository.getProfile()
@@ -258,6 +270,78 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                         current.copy(profile = current.profile.copy(posts = count))
                     }
                 }
+        }
+    }
+
+    private fun refreshAchievements() {
+        viewModelScope.launch {
+            updateState { it.copy(isAchievementsLoading = true, achievementsError = null) }
+
+            val allResult = achievementsRepository.getAllAchievements()
+            val mineResult = achievementsRepository.getMyAchievements()
+            val xpResult = achievementsRepository.getMyXp()
+
+            val allAchievements = allResult.getOrNull().orEmpty().filter { it.isActive != false }
+            val myAchievementsById =
+                mineResult
+                    .getOrNull()
+                    .orEmpty()
+                    .associateBy { it.resolvedAchievementId().orEmpty() }
+
+            val merged =
+                allAchievements.mapNotNull { achievement ->
+                    val id = achievement.id ?: return@mapNotNull null
+                    val myData = myAchievementsById[id]
+                    val tier = normalizeTier(myData?.currentTier)
+                    ProfileAchievementUi(
+                        id = id,
+                        title = achievement.name.orEmpty(),
+                        description = achievement.description.orEmpty(),
+                        icon = achievement.icon.orEmpty(),
+                        currentTier = tier,
+                        isUnlocked = tier != "none"
+                    )
+                }
+
+            val mergedOrFallback =
+                if (merged.isNotEmpty()) merged
+                else {
+                    mineResult
+                        .getOrNull()
+                        .orEmpty()
+                        .mapNotNull { myData ->
+                            val id = myData.resolvedAchievementId() ?: return@mapNotNull null
+                            val tier = normalizeTier(myData.currentTier)
+                            ProfileAchievementUi(
+                                id = id,
+                                title = "Achievement",
+                                description = "",
+                                icon = "",
+                                currentTier = tier,
+                                isUnlocked = tier != "none"
+                            )
+                        }
+                }
+
+            val sortedAchievements =
+                mergedOrFallback.sortedWith(
+                    compareByDescending<ProfileAchievementUi> { it.isUnlocked }.thenBy { it.title }
+                )
+
+            updateState { current ->
+                val xp = xpResult.getOrNull()
+                val nextXp = xp?.totalXp ?: xp?.xp ?: current.profile.totalXp
+                val nextLevel = xp?.level ?: current.profile.level
+                current.copy(
+                    profile = current.profile.copy(totalXp = nextXp, level = nextLevel),
+                    achievements = sortedAchievements,
+                    isAchievementsLoading = false,
+                    achievementsError =
+                        allResult.exceptionOrNull()?.message
+                            ?: mineResult.exceptionOrNull()?.message
+                            ?: xpResult.exceptionOrNull()?.message
+                )
+            }
         }
     }
 
@@ -409,6 +493,13 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                     android.util.Log.e("ProfileViewModel", "Error fetching post details: ${e.message}", e)
                 }
         }
+    }
+}
+
+private fun normalizeTier(rawTier: String?): String {
+    return when (rawTier?.lowercase()) {
+        "bronze", "silver", "gold", "diamond" -> rawTier.lowercase()
+        else -> "none"
     }
 }
 
