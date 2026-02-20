@@ -260,16 +260,27 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                         level = profile.level ?: 1,
                         aiUsage = profile.aiUsage ?: 0
                     )
-                }
 
-            val postsResult = postsRepository.getAllPostsByAuthor(authorId)
-            postsResult
-                .onSuccess { response ->
-                    val count = if (response.total > 0) response.total else response.items.size
-                    updateState { current ->
-                        current.copy(profile = current.profile.copy(posts = count))
+                    profile.postsCount?.let { postsCount ->
+                        updateState { current ->
+                            current.copy(
+                                profile = current.profile.copy(posts = postsCount.coerceAtLeast(0))
+                            )
+                        }
                     }
                 }
+
+            // Fallback for older backend responses that don't include postsCount.
+            if (profileResult.getOrNull()?.postsCount == null) {
+                val postsResult = postsRepository.getAllPostsByAuthor(authorId)
+                postsResult
+                    .onSuccess { response ->
+                        val count = if (response.total > 0) response.total else response.items.size
+                        updateState { current ->
+                            current.copy(profile = current.profile.copy(posts = count))
+                        }
+                    }
+            }
         }
     }
 

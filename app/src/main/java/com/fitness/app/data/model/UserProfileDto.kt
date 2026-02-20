@@ -11,6 +11,7 @@ data class UserProfileDto(
     val picture: String? = null,
     val email: String? = null,
     val streak: Int? = null,
+    val postsCount: Int? = null,
     val totalXp: Int? = 0,
     val level: Int? = 1,
     val aiUsage: Int? = 0,
