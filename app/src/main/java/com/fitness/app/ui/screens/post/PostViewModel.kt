@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.fitness.app.data.model.CreatePostRequest
 import com.fitness.app.data.model.CreateWorkoutDetailsRequest
 import com.fitness.app.data.repository.PostsRepository
+import com.fitness.app.network.NetworkConfig
 import com.fitness.app.ui.base.BaseViewModel
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
+import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.FileNotFoundException
@@ -35,6 +37,7 @@ data class PostUiState(
     val error: String? = null,
     val selectedImageUri: android.net.Uri? = null,
     val existingImageUrl: String? = null,
+    val achievementIconUrl: String? = null,
     val isEditing: Boolean = false,
     val editPostId: String? = null
 )
@@ -82,7 +85,46 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
     }
 
     fun onImageSelected(uri: android.net.Uri?) {
-        updateState { it.copy(selectedImageUri = uri, error = null) }
+        updateState {
+            if (uri == null) {
+                it.copy(
+                    selectedImageUri = null,
+                    existingImageUrl = null,
+                    achievementIconUrl = null,
+                    error = null
+                )
+            } else {
+                it.copy(
+                    selectedImageUri = uri,
+                    existingImageUrl = null,
+                    achievementIconUrl = null,
+                    error = null
+                )
+            }
+        }
+    }
+
+    fun applyAchievementPrefill(
+        title: String?,
+        description: String?,
+        iconUrl: String?
+    ) {
+        if (uiState.value.isEditing) return
+        val safeTitle = title?.trim().orEmpty()
+        val safeDescription = description?.trim().orEmpty()
+        val safeIconUrl = iconUrl?.trim().orEmpty()
+
+        if (safeTitle.isBlank() && safeDescription.isBlank() && safeIconUrl.isBlank()) return
+
+        updateState { current ->
+            current.copy(
+                title = if (safeTitle.isNotBlank()) safeTitle else current.title,
+                description = if (safeDescription.isNotBlank()) safeDescription else current.description,
+                existingImageUrl = if (safeIconUrl.isNotBlank()) safeIconUrl else current.existingImageUrl,
+                achievementIconUrl = if (safeIconUrl.isNotBlank()) safeIconUrl else current.achievementIconUrl,
+                error = null
+            )
+        }
     }
 
     fun loadPost(postId: String) {
@@ -166,10 +208,17 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
                     val filePart =
                         current.selectedImageUri?.let { uri ->
                             createFilePart(context = context, uri = uri)
+                        } ?: current.achievementIconUrl?.takeIf { it.isNotBlank() }?.let { iconUrl ->
+                            createFilePartFromRemoteUrl(iconUrl)
                         }
                     if (current.selectedImageUri != null && filePart == null) {
                         return@withContext Result.failure(
                             Exception("Image must be JPG/JPEG/PNG/GIF/WEBP and up to 5MB")
+                        )
+                    }
+                    if (current.selectedImageUri == null && !current.achievementIconUrl.isNullOrBlank() && filePart == null) {
+                        return@withContext Result.failure(
+                            Exception("Failed to fetch achievement icon image for upload")
                         )
                     }
 
@@ -312,6 +361,36 @@ class PostViewModel : BaseViewModel<PostUiState>(PostUiState()) {
             fileName.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
             fileName.endsWith(".jpg", ignoreCase = true) -> "image/jpeg"
             else -> "image/jpeg"
+        }
+    }
+
+    private fun createFilePartFromRemoteUrl(url: String): MultipartBody.Part? {
+        return try {
+            val request = Request.Builder().url(url).get().build()
+            val response = NetworkConfig.okHttpClient.newCall(request).execute()
+            response.use { res ->
+                if (!res.isSuccessful) return null
+                val body = res.body ?: return null
+                val bytes = body.bytes()
+                if (bytes.isEmpty() || bytes.size.toLong() > maxUploadBytes) return null
+
+                val mimeType =
+                    resolveMimeType(
+                        rawMimeType = body.contentType()?.toString(),
+                        fileName = url
+                    ) ?: "image/png"
+                if (mimeType.lowercase() !in allowedMimeTypes) return null
+
+                val fileNameBase =
+                    url.substringAfterLast("/")
+                        .substringBefore("?")
+                        .ifBlank { "achievement_icon" }
+                val name = ensureImageExtension(fileNameBase, mimeType)
+                val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+                MultipartBody.Part.createFormData("files", name, requestBody)
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 }

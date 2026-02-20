@@ -71,6 +71,9 @@ class SplashFragment : Fragment() {
                             bio = user.description,
                             sportType = user.sportType,
                             streak = user.streak,
+                            totalXp = user.totalXp,
+                            level = user.level,
+                            aiUsage = user.aiUsage,
                             refreshToken = refreshToken
                         )
                         "main"

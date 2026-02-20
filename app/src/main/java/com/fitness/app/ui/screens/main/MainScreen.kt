@@ -22,9 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation. NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fitness.app.auth.UserSession
 import com.fitness.app.navigation.Screen
@@ -36,6 +36,7 @@ import com.fitness.app.ui.screens.profile.EditProfileScreen
 import com.fitness.app.ui.screens.profile.ProfileScreen
 import com.fitness.app.ui.screens.post.PostScreen
 import com.fitness.app.data.model.DiscoverUser
+import com.fitness.app.ui.screens.main.AchievementShareDraft
 
 sealed class BottomNavItem(
     val route: String,
@@ -80,6 +81,7 @@ fun MainScreen(onLogout: () -> Unit, viewModel: MainViewModel = viewModel()) {
     val navController = rememberNavController()
     val uiState by viewModel.uiStateLiveData.observeAsState(MainUiState())
     val forcedLogoutVersion = uiState.forcedLogoutVersion
+    val snackbarHostState = remember { SnackbarHostState() }
     val items = listOf(
         BottomNavItem.Feed,
         BottomNavItem.Post,
@@ -94,7 +96,26 @@ fun MainScreen(onLogout: () -> Unit, viewModel: MainViewModel = viewModel()) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvents.collect { event ->
+            val result =
+                snackbarHostState.showSnackbar(
+                    message = event.message,
+                    actionLabel = event.actionLabel,
+                    withDismissAction = true
+                )
+
+            if (result == SnackbarResult.ActionPerformed && event.achievementShareDraft != null) {
+                navigateToPostWithAchievementShare(
+                    navController = navController,
+                    draft = event.achievementShareDraft
+                )
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -160,7 +181,33 @@ fun MainScreen(onLogout: () -> Unit, viewModel: MainViewModel = viewModel()) {
                 FeedScreen()
             }
             composable(Screen.Post.route) {
+                val prefillTitle =
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<String>(ACHIEVEMENT_SHARE_TITLE_KEY)
+                val prefillDescription =
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<String>(ACHIEVEMENT_SHARE_DESCRIPTION_KEY)
+                val prefillIconUrl =
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.get<String>(ACHIEVEMENT_SHARE_ICON_KEY)
+
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.remove<String>(ACHIEVEMENT_SHARE_TITLE_KEY)
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.remove<String>(ACHIEVEMENT_SHARE_DESCRIPTION_KEY)
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.remove<String>(ACHIEVEMENT_SHARE_ICON_KEY)
+
                 PostScreen(
+                    prefillTitle = prefillTitle,
+                    prefillDescription = prefillDescription,
+                    prefillIconUrl = prefillIconUrl,
                     onPostCreated = {
                         navController.navigate(Screen.Feed.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -234,3 +281,29 @@ fun MainScreen(onLogout: () -> Unit, viewModel: MainViewModel = viewModel()) {
 }
 
 private const val SELECTED_DISCOVER_USER_KEY = "selected_discover_user"
+private const val ACHIEVEMENT_SHARE_TITLE_KEY = "achievement_share_title"
+private const val ACHIEVEMENT_SHARE_DESCRIPTION_KEY = "achievement_share_description"
+private const val ACHIEVEMENT_SHARE_ICON_KEY = "achievement_share_icon"
+
+private fun navigateToPostWithAchievementShare(
+    navController: androidx.navigation.NavHostController,
+    draft: AchievementShareDraft
+) {
+    navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.set(ACHIEVEMENT_SHARE_TITLE_KEY, draft.postTitle)
+    navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.set(ACHIEVEMENT_SHARE_DESCRIPTION_KEY, draft.postDescription)
+    navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.set(ACHIEVEMENT_SHARE_ICON_KEY, draft.iconUrl)
+
+    navController.navigate(Screen.Post.route) {
+        popUpTo(navController.graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}

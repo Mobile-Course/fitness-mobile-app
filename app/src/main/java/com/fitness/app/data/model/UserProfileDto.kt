@@ -11,6 +11,10 @@ data class UserProfileDto(
     val picture: String? = null,
     val email: String? = null,
     val streak: Int? = null,
+    val postsCount: Int? = null,
+    val totalXp: Int? = 0,
+    val level: Int? = 1,
+    val aiUsage: Int? = 0,
     @SerializedName("sportType") val sportType: String? = null,
     @SerializedName("description") val description: String? = null,
     @SerializedName("preferences") val preferences: UserPreferencesDto? = null
@@ -56,7 +60,10 @@ fun UserProfileDto.toUserEntity(): UserEntity {
         oneRmDeadlift = null,
         workoutsPerWeek = null,
         height = null,
-        vo2max = null
+        vo2max = null,
+        totalXp = totalXp ?: 0,
+        level = level ?: 1,
+        aiUsage = aiUsage ?: 0
     )
 }
 

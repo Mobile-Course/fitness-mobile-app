@@ -11,6 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import com.fitness.app.network.NetworkConfig
 import com.fitness.app.data.api.UserProfilesApiService
 import com.fitness.app.data.api.CoachApiService
+import com.fitness.app.data.api.AchievementsApiService
 
 object RetrofitClient {
         private const val BASE_URL = "https://node86.cs.colman.ac.il/"
@@ -43,4 +44,6 @@ object RetrofitClient {
         val userProfilesApiService: UserProfilesApiService =
                 retrofit.create(UserProfilesApiService::class.java)
         val coachApiService: CoachApiService = retrofit.create(CoachApiService::class.java)
+        val achievementsApiService: AchievementsApiService =
+                retrofit.create(AchievementsApiService::class.java)
 }

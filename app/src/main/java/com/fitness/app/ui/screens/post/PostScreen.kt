@@ -74,6 +74,9 @@ fun PostScreen(
     onPostCreated: () -> Unit,
     onCancel: () -> Unit = {},
     postId: String? = null,
+    prefillTitle: String? = null,
+    prefillDescription: String? = null,
+    prefillIconUrl: String? = null,
     postViewModel: PostViewModel = viewModel()
 ) {
     val uiState by postViewModel.uiStateLiveData.observeAsState(PostUiState())
@@ -84,6 +87,16 @@ fun PostScreen(
             postViewModel.loadPost(postId)
         } else {
              if (uiState.isEditing) postViewModel.resetForm()
+        }
+    }
+
+    LaunchedEffect(postId, prefillTitle, prefillDescription, prefillIconUrl) {
+        if (postId == null) {
+            postViewModel.applyAchievementPrefill(
+                title = prefillTitle,
+                description = prefillDescription,
+                iconUrl = prefillIconUrl
+            )
         }
     }
 
@@ -277,6 +290,7 @@ private fun BasicsStep(
             showPhotoSourceSheet = true
         },
         selectedImageUri = uiState.selectedImageUri,
+        existingImageUrl = uiState.existingImageUrl,
         onRemoveClick = if (uiState.selectedImageUri != null || (uiState.existingImageUrl != null && uiState.existingImageUrl.isNotBlank())) {
             { onImageSelected(null) }
         } else null,
