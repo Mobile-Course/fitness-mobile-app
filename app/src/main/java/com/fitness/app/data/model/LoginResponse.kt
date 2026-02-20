@@ -19,5 +19,8 @@ data class User(
     val picture: String? = null,
     val description: String? = null,
     val sportType: String? = null,
-    val streak: Int? = 0
+    val streak: Int? = 0,
+    val totalXp: Int? = 0,
+    val level: Int? = 1,
+    val aiUsage: Int? = 0
 )

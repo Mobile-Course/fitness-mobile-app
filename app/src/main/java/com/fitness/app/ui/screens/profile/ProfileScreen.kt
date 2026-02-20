@@ -149,17 +149,32 @@ fun ProfileScreen(
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(modifier = Modifier.weight(1f))
-                            StatCard(
-                                value = uiState.profile.streak.toString(),
-                                label = "Streak",
-                                accentDark = accentDark
-                                )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            StatCard(
-                                value = uiState.profile.posts.toString(),
-                                label = "Posts",
-                                accentDark = accentDark
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    StatCard(
+                                        value = uiState.profile.streak.toString(),
+                                        label = "Streak",
+                                        accentDark = accentDark
+                                    )
+                                    StatCard(
+                                        value = uiState.profile.posts.toString(),
+                                        label = "Posts",
+                                        accentDark = accentDark
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    StatCard(
+                                        value = uiState.profile.totalXp.toString(),
+                                        label = "XP",
+                                        accentDark = accentDark
+                                    )
+                                    StatCard(
+                                        value = uiState.profile.level.toString(),
+                                        label = "Level",
+                                        accentDark = accentDark
+                                    )
+                                }
+                            }
                         }
                         
                         Spacer(modifier = Modifier.width(20.dp))

@@ -475,7 +475,10 @@ class EditProfileViewModel : BaseViewModel<EditProfileUiState>(EditProfileUiStat
                             picture = profile.picture,
                             bio = profile.description,
                             sportType = profile.sportType,
-                            streak = profile.streak
+                            streak = profile.streak,
+                            totalXp = profile.totalXp,
+                            level = profile.level,
+                            aiUsage = profile.aiUsage
                         )
                     }
                     updateState { it.copy(isLoading = false, errorMessage = null) }

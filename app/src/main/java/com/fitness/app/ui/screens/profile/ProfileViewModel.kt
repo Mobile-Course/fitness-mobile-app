@@ -28,7 +28,9 @@ data class UserProfile(
     val bio: String = "",
     val workouts: Int = 0,
     val streak: Int = 0,
-    val posts: Int = 0
+    val posts: Int = 0,
+    val totalXp: Int = 0,
+    val level: Int = 1
 )
 
 data class Achievement(
@@ -66,9 +68,25 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                 UserSession.username,
                 UserSession.email,
                 UserSession.picture,
-                combine(UserSession.bio, UserSession.streak) { bio, streak -> bio to streak }
-            ) { name, username, email, picture, bioStreak ->
-                ProfileSessionFields(name, username, email, picture, bioStreak.first, bioStreak.second)
+                combine(
+                    UserSession.bio,
+                    UserSession.streak,
+                    UserSession.totalXp,
+                    UserSession.level
+                ) { bio, streak, totalXp, level ->
+                    ProfileSessionDynamicFields(bio, streak, totalXp, level)
+                }
+            ) { name, username, email, picture, dynamic ->
+                ProfileSessionFields(
+                    name = name,
+                    username = username,
+                    email = email,
+                    picture = picture,
+                    bio = dynamic.bio,
+                    streak = dynamic.streak,
+                    totalXp = dynamic.totalXp,
+                    level = dynamic.level
+                )
             }.collect { fields ->
                 updateState { current ->
                     val updatedProfile =
@@ -86,7 +104,9 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                             bio =
                                 fields.bio?.takeIf { it.isNotBlank() }
                                     ?: current.profile.bio,
-                            streak = fields.streak ?: current.profile.streak
+                            streak = fields.streak ?: current.profile.streak,
+                            totalXp = fields.totalXp ?: current.profile.totalXp,
+                            level = fields.level ?: current.profile.level
                         )
                     current.copy(profile = updatedProfile, currentUsername = fields.username)
                 }
@@ -222,7 +242,12 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
             profileResult
                 .onSuccess { profile ->
                     val streak = profile.streak ?: 0
-                    UserSession.setUser(streak = streak)
+                    UserSession.setUser(
+                        streak = streak,
+                        totalXp = profile.totalXp ?: 0,
+                        level = profile.level ?: 1,
+                        aiUsage = profile.aiUsage ?: 0
+                    )
                 }
 
             val postsResult = postsRepository.getAllPostsByAuthor(authorId)
@@ -393,5 +418,14 @@ private data class ProfileSessionFields(
     val email: String?,
     val picture: String?,
     val bio: String?,
-    val streak: Int?
+    val streak: Int?,
+    val totalXp: Int?,
+    val level: Int?
+)
+
+private data class ProfileSessionDynamicFields(
+    val bio: String?,
+    val streak: Int?,
+    val totalXp: Int?,
+    val level: Int?
 )

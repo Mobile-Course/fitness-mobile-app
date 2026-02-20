@@ -31,5 +31,8 @@ data class UserEntity(
     val oneRmDeadlift: Int? = null,
     val workoutsPerWeek: Int? = null,
     val height: Int? = null,
-    val vo2max: Int? = null
+    val vo2max: Int? = null,
+    val totalXp: Int? = null,
+    val level: Int? = null,
+    val aiUsage: Int? = null
 )

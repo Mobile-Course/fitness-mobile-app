@@ -29,6 +29,15 @@ object UserSession {
     private val _streak = MutableStateFlow<Int?>(null)
     val streak: StateFlow<Int?> = _streak.asStateFlow()
 
+    private val _totalXp = MutableStateFlow<Int?>(null)
+    val totalXp: StateFlow<Int?> = _totalXp.asStateFlow()
+
+    private val _level = MutableStateFlow<Int?>(null)
+    val level: StateFlow<Int?> = _level.asStateFlow()
+
+    private val _aiUsage = MutableStateFlow<Int?>(null)
+    val aiUsage: StateFlow<Int?> = _aiUsage.asStateFlow()
+
     private val _userId = MutableStateFlow<String?>(null)
     val userId: StateFlow<String?> = _userId.asStateFlow()
 
@@ -72,6 +81,9 @@ object UserSession {
         bio: String? = null,
         sportType: String? = null,
         streak: Int? = null,
+        totalXp: Int? = null,
+        level: Int? = null,
+        aiUsage: Int? = null,
         userId: String? = null,
         accessToken: String? = null,
         refreshToken: String? = null
@@ -83,6 +95,9 @@ object UserSession {
         if (bio != null) _bio.value = bio
         if (sportType != null) _sportType.value = sportType
         if (streak != null) _streak.value = streak
+        if (totalXp != null) _totalXp.value = totalXp
+        if (level != null) _level.value = level
+        if (aiUsage != null) _aiUsage.value = aiUsage
         if (userId != null) _userId.value = userId
         if (accessToken != null) {
             _accessToken.value = accessToken
@@ -104,6 +119,9 @@ object UserSession {
         _bio.value = null
         _sportType.value = null
         _streak.value = null
+        _totalXp.value = null
+        _level.value = null
+        _aiUsage.value = null
         _userId.value = null
         _accessToken.value = null
         _refreshToken.value = null

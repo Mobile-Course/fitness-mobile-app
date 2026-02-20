@@ -120,6 +120,9 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             val description =
                                 userObj?.get("description")?.asString
                             val sportType = userObj?.get("sportType")?.asString
+                            val totalXp = userObj?.get("totalXp")?.asInt ?: 0
+                            val level = userObj?.get("level")?.asInt ?: 1
+                            val aiUsage = userObj?.get("aiUsage")?.asInt ?: 0
                             val cookieToken = NetworkConfig.getAuthCookieValue()
                             val refreshFromCookieStore = NetworkConfig.getRefreshCookieValue()
                             val resolvedToken = token ?: authHeader ?: cookieAuth ?: cookieToken
@@ -131,6 +134,9 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                                 picture = picture,
                                 bio = description,
                                 sportType = sportType,
+                                totalXp = totalXp,
+                                level = level,
+                                aiUsage = aiUsage,
                                 accessToken = resolvedToken,
                                 refreshToken = resolvedRefreshToken
                             )
@@ -265,6 +271,9 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                         bio = profile.description,
                         sportType = profile.sportType,
                         streak = profile.streak,
+                        totalXp = profile.totalXp,
+                        level = profile.level,
+                        aiUsage = profile.aiUsage,
                         refreshToken = resolvedRefreshToken
                     )
                     val userId = profile.extractId()
@@ -308,6 +317,9 @@ class LoginViewModel : BaseViewModel<LoginUiState>(LoginUiState()) {
                             picture = UserSession.picture.value,
                             email = UserSession.email.value ?: uiState.value.email,
                             streak = UserSession.streak.value,
+                            totalXp = UserSession.totalXp.value,
+                            level = UserSession.level.value,
+                            aiUsage = UserSession.aiUsage.value,
                             sportType = UserSession.sportType.value,
                             description = UserSession.bio.value
                         )).copy(refreshToken = fallbackRefreshToken)

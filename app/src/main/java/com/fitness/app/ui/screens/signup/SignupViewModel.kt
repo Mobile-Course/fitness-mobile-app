@@ -114,7 +114,10 @@ class SignupViewModel : BaseViewModel<SignupUiState>(SignupUiState()) {
                              picture = user.picture,
                              bio = user.description,
                              sportType = user.sportType,
-                             streak = user.streak
+                             streak = user.streak,
+                             totalXp = user.totalXp,
+                             level = user.level,
+                             aiUsage = user.aiUsage
                          )
                          
                          // Helper function to save to DB (similar to LoginViewModel)
@@ -167,6 +170,9 @@ class SignupViewModel : BaseViewModel<SignupUiState>(SignupUiState()) {
                             picture = user.picture,
                             email = user.email,
                             streak = user.streak,
+                            totalXp = user.totalXp,
+                            level = user.level,
+                            aiUsage = user.aiUsage,
                             sportType = user.sportType,
                             description = user.description
                         )
@@ -180,6 +186,9 @@ class SignupViewModel : BaseViewModel<SignupUiState>(SignupUiState()) {
                             picture = null,
                             email = uiState.value.email,
                             streak = 0,
+                            totalXp = 0,
+                            level = 1,
+                            aiUsage = 0,
                             sportType = null,
                             description = null
                          )
@@ -200,6 +209,9 @@ class SignupViewModel : BaseViewModel<SignupUiState>(SignupUiState()) {
                         bio = profile.description,
                         sportType = profile.sportType,
                         streak = profile.streak,
+                        totalXp = profile.totalXp,
+                        level = profile.level,
+                        aiUsage = profile.aiUsage,
                         refreshToken = resolvedRefreshToken
                     )
                 }
