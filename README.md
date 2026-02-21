@@ -1,56 +1,96 @@
-# FitTrack - Personal Fitness Companion 🏋️‍♂️
+# FitTrack Android App
 
-FitTrack is a modern, high-performance Android application designed to help users track their fitness journey, share progress, and get AI-powered training tips. Built with the latest Android technologies, it offers a premium user experience with a sleek dark-themed aesthetic.
+FitTrack is an Android fitness social app built with Kotlin and Jetpack Compose. It connects to a backend API for authentication, posts, achievements, profile data, and AI coaching.
 
-## 📱 Features
+## Current Features
 
--   **🔐 Secure Mock Auth**: Sleek Login and Signup screens with field validation.
--   **📰 Community Feed**: Stay updated with the latest workouts and posts from the community.
--   **👤 Comprehensive Profile**: Track your workouts, streaks, and posts. Earn achievements as you progress.
--   **⚙️ Advanced Preferences**: Customize your app experience with notification toggles, theme settings (Dark Mode), and unit preferences.
--   **✏️ Post Creation (Ready for Logic)**: A well-structured stub for creating new fitness posts.
--   **🤖 AI Fitness Coach (Ready for Logic)**: Integration-ready stub for personalized AI-generated training advice.
+- Email/password signup and login.
+- Session restore on app launch (Splash -> Login/Main based on local user state).
+- Google auth callback handling via deep link (`/app/auth/callback`).
+- Feed with pagination, pull-to-refresh, optimistic likes, and comments.
+- Create and edit posts (2-step flow) with optional workout details.
+- Photo upload for posts from camera or gallery (type + size validation).
+- Discover users with search and enriched profile stats.
+- Profile screen with XP/level/streak, achievements, and user posts.
+- Edit profile with extended fitness fields (age, height, weight, body fat, VO2max, 1RM values).
+- AI Tips chat screen with streaming responses from backend.
+- Token/cookie-aware networking with automatic refresh and forced logout handling.
 
-## 🛠 Tech Stack
+## Tech Stack
 
--   **Language**: [Kotlin](https://kotlinlang.org/)
--   **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material 3)
--   **Architecture**: MVVM (Model-View-ViewModel) with StateFlow
--   **Navigation**: [Jetpack Compose Navigation](https://developer.android.com/jetpack/compose/navigation)
--   **Asynchronous Programming**: Coroutines & Flow
+- Kotlin + Coroutines/Flow
+- Jetpack Compose (Material 3)
+- Fragment host + Navigation Component (Safe Args)
+- MVVM (`BaseViewModel` + UI state)
+- Retrofit + OkHttp + Gson
+- Room (local persistence/cache)
+- Picasso/Coil for image loading
 
-## 📂 Project Structure
+## Backend and API
+
+- Base URL is currently hardcoded to `https://node86.cs.colman.ac.il`.
+- Main API usage is under `/api/auth`, `/api/posts`, `/api/user-profiles`, `/api/achievements`, and coach streaming endpoints.
+- `swagger.json` is included in the repo.
+
+Important:
+
+- The networking layer currently includes a trust-all TLS setup for development (`NetworkConfig`). This should be replaced with proper certificate validation for production.
+
+## Deep Link Auth Callback
+
+The app listens for:
+
+- Scheme: `https`
+- Host: `node86.cs.colman.ac.il`
+
+When triggered, auth query params are consumed and stored for login continuation.
+
+## Project Layout
 
 ```text
 app/src/main/java/com/fitness/app/
-├── navigation/          # Navigation routes and Graph (NavGraph.kt)
-├── ui/
-│   ├── base/            # Base classes (BaseViewModel)
-│   ├── theme/           # Design System (Color, Type, Theme)
-│   └── screens/         # Feature-specific screens
-│       ├── login/       # Login UI & ViewModel
-│       ├── signup/      # Signup UI & ViewModel
-│       ├── main/        # Bottom Nav Host (MainScreen.kt)
-│       ├── feed/        # Community Feed
-│       ├── profile/     # User Profile & Stats
-│       ├── preferences/ # Settings & Logout
-│       ├── post/        # Post creation (Stub)
-│       └── aitips/      # AI Training Tips (Stub)
+  auth/            session + google auth result store
+  data/            api services, repositories, local Room models/dao
+  navigation/      screen routes
+  network/         okhttp/auth/token refresh config
+  ui/
+    fragments/     Splash/Login/Signup/Main fragment hosts
+    screens/       Compose feature screens (feed/post/discover/profile/ai)
+    components/    reusable UI components
+    viewmodels/    shared viewmodels (camera)
+  utils/           cross-screen invalidation flows
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
--   [Android Studio Hedgehog](https://developer.android.com/studio) or newer.
--   JDK 17.
+- Android Studio (recent stable)
+- JDK 17
+- Android SDK with:
+  - `compileSdk 35`
+  - `minSdk 24`
+  - `targetSdk 34`
 
-### Running the App
+### Run
 
-1.  Clone the repository.
-2.  Open the project in Android Studio.
-3.  Wait for Gradle sync to complete.
-4.  Run the `app` module on an emulator (API 24+) or a physical device.
+1. Open the project in Android Studio.
+2. Sync Gradle.
+3. Run the `app` configuration on an emulator or device.
 
-*Made with ❤️ for Fitness Enthusiasts.*
-*By Guy Yablonka and Ethan Larrar*
+Optional CLI build:
+
+```bash
+./gradlew assembleDebug
+```
+
+On Windows PowerShell:
+
+```powershell
+.\gradlew.bat assembleDebug
+```
+
+## Current Notes
+
+- `PreferencesScreen` exists but is not part of the active main navigation flow.
+- App database uses `fallbackToDestructiveMigration()` (local data can reset on schema changes).
