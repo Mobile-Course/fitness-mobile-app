@@ -29,15 +29,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.fitness.app.data.model.DiscoverUser
 import com.fitness.app.ui.components.FitTrackHeader
+import com.fitness.app.ui.components.PicassoImage
 import kotlinx.coroutines.delay
 
 @Composable
@@ -120,10 +118,10 @@ fun DiscoverScreen(
 
 @Composable
 private fun DiscoverUserRow(user: DiscoverUser, onClick: () -> Unit) {
-    val context = LocalContext.current
     val avatarSeed = user.username.ifBlank { "user" }
+    val resolvedPicture = resolveAvatarUrl(user.picture)
     val avatarUrl =
-        user.picture?.takeIf { it.isNotBlank() }
+        resolvedPicture
             ?: "https://ui-avatars.com/api/?name=$avatarSeed&background=random"
 
     Row(
@@ -135,11 +133,11 @@ private fun DiscoverUserRow(user: DiscoverUser, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context).data(avatarUrl).build(),
+        PicassoImage(
+            url = avatarUrl,
             contentDescription = "User avatar",
             modifier = Modifier.size(48.dp).clip(CircleShape),
-            contentScale = ContentScale.Crop
+            contentScale = android.widget.ImageView.ScaleType.CENTER_CROP
         )
 
         Column(modifier = Modifier.weight(1f)) {
@@ -153,7 +151,16 @@ private fun DiscoverUserRow(user: DiscoverUser, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (!user.sportType.isNullOrBlank()) {
+            if (!user.description.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = user.description,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else if (!user.sportType.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = user.sportType,
@@ -161,6 +168,31 @@ private fun DiscoverUserRow(user: DiscoverUser, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                UserStatChip(label = "Level", value = (user.level ?: 1).toString())
+                UserStatChip(label = "XP", value = (user.totalXp ?: 0).toString())
+                UserStatChip(label = "Achievements", value = (user.achievementsCount ?: 0).toString())
+            }
         }
     }
+}
+
+private fun resolveAvatarUrl(path: String?): String? {
+    if (path.isNullOrBlank()) return null
+    if (path.startsWith("http://") || path.startsWith("https://")) return path
+    return "https://node86.cs.colman.ac.il$path"
+}
+
+@Composable
+private fun UserStatChip(label: String, value: String) {
+    Text(
+        text = "$label: $value",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }

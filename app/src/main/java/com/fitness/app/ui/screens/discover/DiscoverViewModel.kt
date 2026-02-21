@@ -3,9 +3,13 @@ package com.fitness.app.ui.screens.discover
 import com.fitness.app.auth.UserSession
 import com.fitness.app.data.model.DiscoverUser
 import com.fitness.app.data.repository.AuthRepository
+import com.fitness.app.data.repository.UserProfilesRepository
 import com.fitness.app.ui.base.BaseViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 data class DiscoverUiState(
@@ -17,6 +21,7 @@ data class DiscoverUiState(
 
 class DiscoverViewModel : BaseViewModel<DiscoverUiState>(DiscoverUiState()) {
     private val authRepository = AuthRepository()
+    private val userProfilesRepository = UserProfilesRepository()
     private var searchJob: Job? = null
 
     fun onQueryChanged(query: String) {
@@ -35,7 +40,8 @@ class DiscoverViewModel : BaseViewModel<DiscoverUiState>(DiscoverUiState()) {
             updateState { it.copy(isLoading = true, error = null) }
             authRepository.searchUsers(query)
                 .onSuccess { users ->
-                    updateState { it.copy(users = users, isLoading = false, error = null) }
+                    val enrichedUsers = enrichUsersWithStats(users)
+                    updateState { it.copy(users = enrichedUsers, isLoading = false, error = null) }
                 }
                 .onFailure { throwable ->
                     updateState {
@@ -48,4 +54,24 @@ class DiscoverViewModel : BaseViewModel<DiscoverUiState>(DiscoverUiState()) {
                 }
         }
     }
+
+    private suspend fun enrichUsersWithStats(users: List<DiscoverUser>): List<DiscoverUser> =
+        coroutineScope {
+            users.map { user ->
+                async {
+                    val result = userProfilesRepository.getUserProfile(user.id)
+                    val profile = result.getOrNull()
+                    val xpStats = profile?.xpStats
+                    val achievements = profile?.achievements.orEmpty()
+                    val unlockedCount =
+                        achievements.count { it.currentTier?.lowercase() in setOf("bronze", "silver", "gold", "diamond") }
+
+                    user.copy(
+                        totalXp = xpStats?.totalXp ?: user.totalXp,
+                        level = xpStats?.level ?: user.level,
+                        achievementsCount = if (profile != null) unlockedCount else user.achievementsCount
+                    )
+                }
+            }.awaitAll()
+        }
 }

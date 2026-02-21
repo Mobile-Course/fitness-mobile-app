@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
 
 data class UserProfile(
     val name: String = "User",
+    val lastName: String = "",
     val username: String = "user",
     val email: String = "",
     val picture: String? = null,
@@ -264,7 +265,24 @@ class ProfileViewModel : BaseViewModel<ProfileUiState>(ProfileUiState()) {
                     profile.postsCount?.let { postsCount ->
                         updateState { current ->
                             current.copy(
-                                profile = current.profile.copy(posts = postsCount.coerceAtLeast(0))
+                                profile =
+                                    current.profile.copy(
+                                        name = profile.name ?: current.profile.name,
+                                        lastName = profile.lastName ?: current.profile.lastName,
+                                        posts = postsCount.coerceAtLeast(0)
+                                    )
+                            )
+                        }
+                    }
+
+                    if (profile.postsCount == null) {
+                        updateState { current ->
+                            current.copy(
+                                profile =
+                                    current.profile.copy(
+                                        name = profile.name ?: current.profile.name,
+                                        lastName = profile.lastName ?: current.profile.lastName
+                                    )
                             )
                         }
                     }

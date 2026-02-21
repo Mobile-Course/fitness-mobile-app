@@ -46,7 +46,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.fitness.app.R
+import com.fitness.app.network.NetworkConfig
 import com.fitness.app.ui.components.FitTrackHeader
+import com.fitness.app.ui.components.PicassoImage
 import com.fitness.app.ui.components.PostItem
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,7 +68,11 @@ fun ProfileScreen(
     val avatarFallbackSeed =
         uiState.profile.username.ifBlank { uiState.profile.name.ifBlank { "user" } }
     val avatarUrl =
-        uiState.profile.picture?.takeIf { it.isNotBlank() }
+        uiState.profile.picture
+            ?.takeIf { it.isNotBlank() }
+            ?.let { raw ->
+                if (raw.startsWith("http")) raw else "${NetworkConfig.BASE_URL}$raw"
+            }
             ?: "https://ui-avatars.com/api/?name=${avatarFallbackSeed}&background=343E4E&color=ffffff"
 
     val posts = uiState.posts
@@ -169,14 +175,11 @@ fun ProfileScreen(
                                 .fillMaxWidth()
                                 .padding(12.dp)
                         ) {
-                            AsyncImage(
-                                model =
-                                    ImageRequest.Builder(LocalContext.current)
-                                        .data(avatarUrl)
-                                        .build(),
+                            PicassoImage(
+                                url = avatarUrl,
                                 contentDescription = "Profile Picture",
                                 modifier = Modifier.size(80.dp).clip(CircleShape),
-                                contentScale = ContentScale.Crop
+                                contentScale = android.widget.ImageView.ScaleType.CENTER_CROP
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -213,8 +216,14 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
+                                val fullName =
+                                    listOf(uiState.profile.name, uiState.profile.lastName)
+                                        .map { it.trim() }
+                                        .filter { it.isNotBlank() }
+                                        .joinToString(" ")
+                                        .ifBlank { uiState.profile.name }
                                 Text(
-                                    text = uiState.profile.name,
+                                    text = fullName,
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = accentDark

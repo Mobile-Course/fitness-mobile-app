@@ -51,5 +51,54 @@ data class UserProfileSummaryDto(
     val oneRm: OneRm? = null,
     val workoutsPerWeek: Int? = null,
     val height: Int? = null,
-    val vo2max: Int? = null
+    val vo2max: Int? = null,
+    val achievements: List<UserProfileAchievementDto>? = null,
+    val xpStats: UserProfileXpStatsDto? = null
+)
+
+data class UserProfileAchievementDto(
+    @com.google.gson.annotations.SerializedName("_id")
+    val id: String? = null,
+    val achievementId: com.google.gson.JsonElement? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val icon: String? = null,
+    val currentTier: String? = null
+) {
+    fun resolvedAchievementId(): String? {
+        val raw = achievementId ?: return null
+        return when {
+            raw.isJsonNull -> null
+            raw.isJsonPrimitive -> raw.asString
+            raw.isJsonObject -> {
+                val obj = raw.asJsonObject
+                obj.get("_id")?.asString ?: obj.get("id")?.asString
+            }
+            else -> null
+        }
+    }
+}
+
+data class UserProfileXpStatsDto(
+    val xp: Int? = null,
+    val totalXp: Int? = null,
+    val level: Int? = null
+)
+
+data class PublicUserProfileDto(
+    @com.google.gson.annotations.SerializedName("_id")
+    val id: String? = null,
+    val name: String? = null,
+    val lastName: String? = null,
+    val username: String? = null,
+    val picture: String? = null,
+    val description: String? = null,
+    val sportType: String? = null,
+    val totalXp: Int? = null,
+    val level: Int? = null,
+    val streak: Int? = null,
+    val postsCount: Int? = null,
+    val profile: UserProfileSummaryDto? = null,
+    val achievements: List<UserProfileAchievementDto>? = null,
+    val xpStats: UserProfileXpStatsDto? = null
 )
