@@ -10,7 +10,10 @@ data class DiscoverUserDto(
     @SerializedName("lastName") val lastName: String? = null,
     val picture: String? = null,
     @SerializedName("sportType") val sportType: String? = null,
-    @SerializedName("description") val description: String? = null
+    @SerializedName("description") val description: String? = null,
+    val totalXp: Int? = null,
+    val level: Int? = null,
+    val streak: Int? = null
 )
 
 data class DiscoverUser(
@@ -20,7 +23,11 @@ data class DiscoverUser(
     val lastName: String?,
     val picture: String?,
     val sportType: String?,
-    val description: String?
+    val description: String?,
+    val totalXp: Int? = null,
+    val level: Int? = null,
+    val streak: Int? = null,
+    val achievementsCount: Int? = null
 ) : Serializable {
     fun displayName(): String {
         val fullName =
@@ -49,6 +56,10 @@ fun DiscoverUserDto.toDiscoverUserOrNull(): DiscoverUser? {
         lastName = lastName?.trim(),
         picture = picture?.trim(),
         sportType = sportType?.trim(),
-        description = description?.trim()
+        description = description?.trim(),
+        totalXp = totalXp,
+        level = level,
+        streak = streak,
+        achievementsCount = null
     )
 }

@@ -11,9 +11,10 @@ import androidx.room.RoomDatabase
         PostEntity::class,
         AchievementEntity::class,
         UserAchievementEntity::class,
-        UserXpEntity::class
+        UserXpEntity::class,
+        PublicUserProfileCacheEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 @androidx.room.TypeConverters(Converters::class)
@@ -21,6 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun postDao(): PostDao
     abstract fun achievementDao(): AchievementDao
+    abstract fun publicUserProfileCacheDao(): PublicUserProfileCacheDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null

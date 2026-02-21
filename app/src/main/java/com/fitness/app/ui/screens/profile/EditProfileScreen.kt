@@ -178,6 +178,18 @@ fun EditProfileScreen(
                 }
             )
             OutlinedTextField(
+                value = uiState.lastName,
+                onValueChange = viewModel::onLastNameChanged,
+                label = { Text("Last Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                isError = errorFor("lastName") != null,
+                supportingText = {
+                    val error = errorFor("lastName")
+                    if (error != null) Text(error)
+                }
+            )
+            OutlinedTextField(
                 value = uiState.password,
                 onValueChange = viewModel::onPasswordChanged,
                 label = { Text("Password") },
